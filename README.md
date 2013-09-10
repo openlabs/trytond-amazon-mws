@@ -1,0 +1,2 @@
+trytond-amazon-mws
+==================
