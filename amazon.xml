@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<tryton>
+    <data>
+
+        <record model="ir.ui.view" id="amazon_mws_account_view_form">
+            <field name="model">amazon.mws.account</field>
+            <field name="type">form</field>
+            <field name="arch" type="xml">
+                <![CDATA[
+                    <form string="Amazon MWS Account">
+                        <label name="merchant_id" />
+                        <field name="merchant_id" />
+                        <label name="marketplace_id" />
+                        <field name="marketplace_id" />
+                        <label name="access_key"/>
+                        <field name="access_key"/>
+                        <label name="secret_key"/>
+                        <field name="secret_key"/>
+                    </form>
+                ]]>
+            </field>
+        </record>
+        <record model="ir.ui.view" id="amazon_mws_account_view_tree">
+            <field name="model">amazon.mws.account</field>
+            <field name="type">tree</field>
+            <field name="arch" type="xml">
+                <![CDATA[
+                    <tree string="Amazon MWS Accounts">
+                        <field name="merchant_id" />
+                        <field name="marketplace_id" />
+                        <field name="access_key" />
+                        <field name="secret_key"/>
+                    </tree>
+                ]]>
+            </field>
+        </record>
+
+        <record model="ir.action.act_window" id="act_amazon_mws_account_form">
+            <field name="name">Amazon MWS Accounts</field>
+            <field name="res_model">amazon.mws.account</field>
+        </record>
+        <record model="ir.action.act_window.view"
+                id="act_amazon_mws_account_view1">
+            <field name="sequence" eval="20"/>
+            <field name="view" ref="amazon_mws_account_view_form"/>
+            <field name="act_window" ref="act_amazon_mws_account_form"/>
+        </record>
+        <record model="ir.action.act_window.view"
+                id="act_amazon_mws_account_view2">
+            <field name="sequence" eval="10"/>
+            <field name="view" ref="amazon_mws_account_view_tree"/>
+            <field name="act_window" ref="act_amazon_mws_account_form"/>
+        </record>
+        <menuitem id="amazon_mws" sequence="50" name="Amazon MWS"/>
+        <menuitem parent="amazon_mws"
+            action="act_amazon_mws_account_form"
+            id="menu_amazon_mws_account"
+            sequence="0" icon="tryton-list"/>
+
+    </data>
+</tryton>
