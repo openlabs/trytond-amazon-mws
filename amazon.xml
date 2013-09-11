@@ -17,6 +17,7 @@
                         <field name="access_key"/>
                         <label name="secret_key"/>
                         <field name="secret_key"/>
+                        <button string="Check Service Status" name="check_service_status" colspan="2"/>
                     </form>
                 ]]>
             </field>
@@ -57,6 +58,19 @@
             action="act_amazon_mws_account_form"
             id="menu_amazon_mws_account"
             sequence="0" icon="tryton-list"/>
+
+        <!--Check Service Status Wizard-->
+        <record model="ir.action.wizard" id="check_service_status">
+            <field name="name">Check Service Status</field>
+            <field name="wiz_name">amazon.mws.check_service_status</field>
+            <field name="model">amazon.mws.account</field>
+        </record>
+
+        <record model="ir.ui.view" id="check_service_status_view_form">
+            <field name="model">amazon.mws.check_service_status.view</field>
+            <field name="type">form</field>
+            <field name="name">wizard_check_service_status_view_form</field>
+        </record>
 
     </data>
 </tryton>
