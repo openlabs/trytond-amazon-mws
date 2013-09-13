@@ -8,7 +8,9 @@
     :license: BSD, see LICENSE for more details.
 """
 from trytond.pool import Pool
-from .amazon import AmazonMWSAccount
+from .amazon import (
+    MWSAccount, CheckServiceStatus, CheckServiceStatusView
+)
 
 
 def register():
@@ -16,6 +18,12 @@ def register():
     Register classes with pool
     """
     Pool.register(
-        AmazonMWSAccount,
+        MWSAccount,
+        CheckServiceStatusView,
         module='amazon_mws', type_='model'
+    )
+
+    Pool.register(
+        CheckServiceStatus,
+        module='amazon_mws', type_='wizard'
     )
