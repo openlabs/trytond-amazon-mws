@@ -39,13 +39,43 @@ class TestAmazon(unittest.TestCase):
         Create amazon mws account
         """
         AmazonAccount = POOL.get('amazon.mws.account')
+        Company = POOL.get('company.company')
+        User = POOL.get('res.user')
+        Party = POOL.get('party.party')
+        Currency = POOL.get('currency.currency')
+        Location = POOL.get('stock.location')
 
         with Transaction().start(DB_NAME, USER, CONTEXT):
+            with Transaction().set_context(company=None):
+                party, = Party.create([{
+                    'name': 'ABC',
+                }])
+                usd, = Currency.create([{
+                    'name': 'US Dollar',
+                    'code': 'USD',
+                    'symbol': '$',
+                }])
+                company, = Company.create([{
+                    'party': party.id,
+                    'currency': usd.id,
+                }])
+
+            User.write([User(USER)], {
+                'main_company': company.id,
+                'company': company.id,
+            })
+
+            warehouse, = Location.search([
+                ('type', '=', 'warehouse')
+            ], limit=1)
+
             account = AmazonAccount.create([{
                 'merchant_id': '1234',
                 'marketplace_id': '3456',
                 'access_key': 'AWS1',
                 'secret_key': 'S013',
+                'company': company.id,
+                'warehouse': warehouse.id,
             }])
 
             self.assert_(account)

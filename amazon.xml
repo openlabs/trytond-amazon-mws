@@ -17,6 +17,10 @@
                         <field name="access_key"/>
                         <label name="secret_key"/>
                         <field name="secret_key"/>
+                        <label name="company"/>
+                        <field name="company"/>
+                        <label name="warehouse"/>
+                        <field name="warehouse"/>
                         <button string="Check Service Status" name="check_service_status" colspan="2"/>
                         <button string="Check Amazon MWS Account Settings"
                             name="check_amazon_settings" colspan="2"/>
