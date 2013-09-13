@@ -11,6 +11,7 @@ from mws import mws
 from trytond.model import ModelView, ModelSQL, fields
 from trytond.wizard import Wizard, StateView, Button
 from trytond.transaction import Transaction
+from trytond.pyson import Eval
 from trytond.pool import Pool
 
 
@@ -32,6 +33,32 @@ class MWSAccount(ModelSQL, ModelView):
     secret_key = fields.Char("Secret Key", required=True)
 
     company = fields.Many2One("company.company", "Company", required=True)
+    default_uom = fields.Many2One(
+        'product.uom', 'Default Product UOM', required=True
+    )
+    default_account_expense = fields.Property(fields.Many2One(
+        'account.account', 'Account Expense', domain=[
+            ('kind', '=', 'expense'),
+            ('company', '=', Eval('company')),
+        ], depends=['company'], required=True
+    ))
+
+    #: Used to set revenue account while creating products.
+    default_account_revenue = fields.Property(fields.Many2One(
+        'account.account', 'Account Revenue', domain=[
+            ('kind', '=', 'revenue'),
+            ('company', '=', Eval('company')),
+        ], depends=['company'], required=True
+    ))
+
+    @staticmethod
+    def default_default_uom():
+        UoM = Pool().get('product.uom')
+
+        unit = UoM.search([
+            ('name', '=', 'Unit'),
+        ])
+        return unit and unit[0] or None
 
     warehouse = fields.Many2One(
         'stock.location', 'Warehouse',
@@ -68,6 +95,18 @@ class MWSAccount(ModelSQL, ModelView):
         :return: mws api instance
         """
         return mws.MWS(
+            access_key=self.access_key,
+            secret_key=self.secret_key,
+            account_id=self.merchant_id,
+        )
+
+    def get_product_api(self):
+        """
+        Create an instance of product api
+
+        :return: Product API instance
+        """
+        return mws.Products(
             access_key=self.access_key,
             secret_key=self.secret_key,
             account_id=self.merchant_id,
