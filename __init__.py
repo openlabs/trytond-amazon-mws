@@ -9,7 +9,8 @@
 """
 from trytond.pool import Pool
 from .amazon import (
-    MWSAccount, CheckServiceStatus, CheckServiceStatusView
+    MWSAccount, CheckServiceStatus, CheckServiceStatusView,
+    CheckAmazonSettingsView, CheckAmazonSettings
 )
 
 
@@ -20,10 +21,12 @@ def register():
     Pool.register(
         MWSAccount,
         CheckServiceStatusView,
+        CheckAmazonSettingsView,
         module='amazon_mws', type_='model'
     )
 
     Pool.register(
         CheckServiceStatus,
+        CheckAmazonSettings,
         module='amazon_mws', type_='wizard'
     )

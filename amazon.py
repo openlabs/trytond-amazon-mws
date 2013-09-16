@@ -14,7 +14,10 @@ from trytond.transaction import Transaction
 from trytond.pool import Pool
 
 
-__all__ = ['MWSAccount', 'CheckServiceStatusView', 'CheckServiceStatus']
+__all__ = [
+    'MWSAccount', 'CheckServiceStatusView', 'CheckServiceStatus',
+    'CheckAmazonSettingsView', 'CheckAmazonSettings'
+]
 
 
 class MWSAccount(ModelSQL, ModelView):
@@ -36,6 +39,7 @@ class MWSAccount(ModelSQL, ModelView):
         super(MWSAccount, cls).__setup__()
         cls._buttons.update({
             'check_service_status': {},
+            'check_amazon_settings': {},
         })
 
     def get_mws_api(self):
@@ -55,6 +59,16 @@ class MWSAccount(ModelSQL, ModelView):
     def check_service_status(cls, accounts):
         """
         Check GREEN, GREEN_I, YELLOW or RED status
+
+        :param accounts: Active record list of amazon mws accounts
+        """
+        pass
+
+    @classmethod
+    @ModelView.button_action('amazon_mws.check_amazon_settings')
+    def check_amazon_settings(cls, accounts):
+        """
+        Checks account settings configured
 
         :param accounts: Active record list of amazon mws accounts
         """
@@ -128,4 +142,54 @@ class CheckServiceStatus(Wizard):
             status_message = status_message + message['Text']['value'] + ' '
             res['message'] = status_message
 
+        return res
+
+
+class CheckAmazonSettingsView(ModelView):
+    "Check Amazon Settings View"
+    __name__ = 'amazon.mws.check_amazon_settings.view'
+
+    status = fields.Text('Status', readonly=True)
+
+
+class CheckAmazonSettings(Wizard):
+    """
+    Wizard to Check Amazon MWS Settings
+
+    Check amazon settings configured for the current MWS account
+    """
+    __name__ = 'amazon.mws.check_amazon_settings'
+
+    start = StateView(
+        'amazon.mws.check_amazon_settings.view',
+        'amazon_mws.check_amazon_settings_view_form',
+        [
+            Button('OK', 'end', 'tryton-ok'),
+        ]
+    )
+
+    def default_start(self, data):
+        """
+        Check the amazon settings for the current account
+
+        :param data: Wizard data
+        """
+        MWSAccount = Pool().get('amazon.mws.account')
+
+        account = MWSAccount(Transaction().context.get('active_id'))
+
+        res = {}
+        api = mws.Feeds(
+            access_key=account.access_key,
+            secret_key=account.secret_key,
+            account_id=account.merchant_id,
+        )
+
+        try:
+            api.get_feed_submission_count().parsed
+            res['status'] = 'Account settings have been configured correctly'
+
+        except mws.MWSError:
+            res['status'] = "Something went wrong. Please check account " + \
+                "settings again"
         return res

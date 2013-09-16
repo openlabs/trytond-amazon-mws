@@ -18,6 +18,8 @@
                         <label name="secret_key"/>
                         <field name="secret_key"/>
                         <button string="Check Service Status" name="check_service_status" colspan="2"/>
+                        <button string="Check Amazon MWS Account Settings"
+                            name="check_amazon_settings" colspan="2"/>
                     </form>
                 ]]>
             </field>
@@ -70,6 +72,19 @@
             <field name="model">amazon.mws.check_service_status.view</field>
             <field name="type">form</field>
             <field name="name">wizard_check_service_status_view_form</field>
+        </record>
+
+        <!--Check Amazon Settings Wizard-->
+        <record model="ir.action.wizard" id="check_amazon_settings">
+            <field name="name">Check Amazon Settings</field>
+            <field name="wiz_name">amazon.mws.check_amazon_settings</field>
+            <field name="model">amazon.mws.account</field>
+        </record>
+
+        <record model="ir.ui.view" id="check_amazon_settings_view_form">
+            <field name="model">amazon.mws.check_amazon_settings.view</field>
+            <field name="type">form</field>
+            <field name="name">wizard_check_amazon_settings_view_form</field>
         </record>
 
     </data>
