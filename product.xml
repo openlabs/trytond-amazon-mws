@@ -1,0 +1,83 @@
+<?xml version="1.0"?>
+<!-- This file is part of Tryton. The COPYRIGHT file at the top level of
+this repository contains the full copyright notices and license terms. -->
+<tryton>
+    <data>
+
+        <record model="ir.ui.view" id="product_view_form">
+            <field name="model">product.product</field>
+            <field name="inherit" ref="product.product_view_form"/>
+            <field name="name">product_form</field>
+        </record>
+
+        <record model="ir.ui.view" id="template_view_form">
+            <field name="model">product.template</field>
+            <field name="inherit" ref="product.template_view_form"/>
+            <field name="name">template_form</field>
+        </record>
+
+        <record model="ir.action.wizard" id="wizard_export_catalog">
+            <field name="name">Export Product Catalog to Amazon</field>
+            <field name="wiz_name">amazon.export_catalog</field>
+            <field name="model">amazon.mws.account</field>
+        </record>
+        <record model="ir.action.keyword" id="export_catalog_keyword">
+            <field name="keyword">form_action</field>
+            <field name="model">amazon.mws.account,-1</field>
+            <field name="action" ref="wizard_export_catalog"/>
+        </record>
+        <record model="ir.ui.view" id="export_catalog_start">
+            <field name="model">amazon.export_catalog.start</field>
+            <field name="type">form</field>
+            <field name="name">export_catalog_start_form</field>
+        </record>
+        <record model="ir.ui.view" id="export_catalog_done">
+            <field name="model">amazon.export_catalog.done</field>
+            <field name="type">form</field>
+            <field name="name">export_catalog_done_form</field>
+        </record>
+
+        <record model="ir.action.wizard" id="wizard_export_catalog_pricing">
+            <field name="name">Export Product Catalog Prices to Amazon</field>
+            <field name="wiz_name">amazon.export_catalog_pricing</field>
+            <field name="model">amazon.mws.account</field>
+        </record>
+        <record model="ir.action.keyword" id="export_catalog_pricing_keyword">
+            <field name="keyword">form_action</field>
+            <field name="model">amazon.mws.account,-1</field>
+            <field name="action" ref="wizard_export_catalog_pricing"/>
+        </record>
+        <record model="ir.ui.view" id="export_catalog_pricing_start">
+            <field name="model">amazon.export_catalog_pricing.start</field>
+            <field name="type">form</field>
+            <field name="name">export_catalog_pricing_start_form</field>
+        </record>
+        <record model="ir.ui.view" id="export_catalog_pricing_done">
+            <field name="model">amazon.export_catalog_pricing.done</field>
+            <field name="type">form</field>
+            <field name="name">export_catalog_pricing_done_form</field>
+        </record>
+
+        <record model="ir.action.wizard" id="wizard_export_catalog_inventory">
+            <field name="name">Export Product Catalog Inventory to Amazon</field>
+            <field name="wiz_name">amazon.export_catalog_inventory</field>
+            <field name="model">amazon.mws.account</field>
+        </record>
+        <record model="ir.action.keyword" id="export_catalog_inventory_keyword">
+            <field name="keyword">form_action</field>
+            <field name="model">amazon.mws.account,-1</field>
+            <field name="action" ref="wizard_export_catalog_inventory"/>
+        </record>
+        <record model="ir.ui.view" id="export_catalog_inventory_start">
+            <field name="model">amazon.export_catalog_inventory.start</field>
+            <field name="type">form</field>
+            <field name="name">export_catalog_inventory_start_form</field>
+        </record>
+        <record model="ir.ui.view" id="export_catalog_inventory_done">
+            <field name="model">amazon.export_catalog_inventory.done</field>
+            <field name="type">form</field>
+            <field name="name">export_catalog_inventory_done_form</field>
+        </record>
+
+  </data>
+</tryton>

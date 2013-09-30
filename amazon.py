@@ -31,6 +31,25 @@ class MWSAccount(ModelSQL, ModelView):
     access_key = fields.Char("Access Key", required=True)
     secret_key = fields.Char("Secret Key", required=True)
 
+    company = fields.Many2One("company.company", "Company", required=True)
+
+    warehouse = fields.Many2One(
+        'stock.location', 'Warehouse',
+        domain=[('type', '=', 'warehouse')], required=True
+    )
+
+    @classmethod
+    def default_warehouse(cls):
+        "Default value for warehouse"
+        Location = Pool().get('stock.location')
+        locations = Location.search(cls.warehouse.domain)
+        if len(locations) == 1:
+            return locations[0].id
+
+    @staticmethod
+    def default_company():
+        return Transaction().context.get('company')
+
     @classmethod
     def __setup__(cls):
         """

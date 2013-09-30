@@ -12,6 +12,7 @@ import trytond.tests.test_tryton
 
 from tests.test_views import TestViewDepend
 from tests.test_amazon import TestAmazon
+from tests.test_product import TestProduct
 
 
 def suite():
@@ -22,6 +23,7 @@ def suite():
     test_suite.addTests([
         unittest.TestLoader().loadTestsFromTestCase(TestViewDepend),
         unittest.TestLoader().loadTestsFromTestCase(TestAmazon),
+        unittest.TestLoader().loadTestsFromTestCase(TestProduct),
     ])
     return test_suite
 
