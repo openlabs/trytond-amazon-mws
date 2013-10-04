@@ -21,6 +21,16 @@
                         <field name="company"/>
                         <label name="warehouse"/>
                         <field name="warehouse"/>
+                        <label name="default_uom"/>
+                        <field name="default_uom"/>
+                        <notebook>
+                            <page id="account_details" string="Account Details">
+                                <label name="default_account_revenue"/>
+                                <field name="default_account_revenue"/>
+                                <label name="default_account_expense"/>
+                                <field name="default_account_expense"/>
+                            </page>
+                        </notebook>
                         <button string="Check Service Status" name="check_service_status" colspan="2"/>
                         <button string="Check Amazon MWS Account Settings"
                             name="check_amazon_settings" colspan="2"/>

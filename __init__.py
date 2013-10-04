@@ -40,7 +40,6 @@ def register():
         CheckAmazonSettingsView,
         module='amazon_mws', type_='model'
     )
-
     Pool.register(
         CheckServiceStatus,
         CheckAmazonSettings,

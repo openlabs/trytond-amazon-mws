@@ -5,6 +5,8 @@
     :copyright: (c) 2013 by Openlabs Technologies & Consulting (P) Limited
     :license: BSD, see LICENSE for more details.
 """
+import os
+import json
 import unittest
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -12,6 +14,36 @@ from dateutil.relativedelta import relativedelta
 import trytond.tests.test_tryton
 from trytond.tests.test_tryton import POOL, USER
 from trytond.transaction import Transaction
+
+
+ROOT_JSON_FOLDER = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), 'json'
+)
+
+
+def load_json(resource, filename):
+    """Reads the json file from the filesystem and returns the json loaded as
+    python objects
+
+    On filesystem, the files are kept in this format:
+        json----
+              |
+            resource----
+                       |
+                       filename
+
+    :param resource: The magento resource for which the file has to be
+                     fetched. It is same as the folder name in which the files
+                     are kept.
+    :param filename: The name of the file to be fethced without `.json`
+                     extension.
+    :returns: Loaded json from the contents of the file read.
+    """
+    file_path = os.path.join(
+        ROOT_JSON_FOLDER, resource, str(filename)
+    ) + '.json'
+
+    return json.loads(open(file_path).read())
 
 
 class TestBase(unittest.TestCase):
@@ -199,6 +231,8 @@ class TestBase(unittest.TestCase):
             'access_key': 'AWS1',
             'secret_key': 'S013',
             'company': self.company.id,
+            'default_account_revenue': self.get_account_by_kind('revenue'),
+            'default_account_expense': self.get_account_by_kind('expense'),
         }])
 
         model_field, = self.ModelField.search([
@@ -209,7 +243,7 @@ class TestBase(unittest.TestCase):
         # TODO: This should work without creating new properties
         self.Property.create([{
             'value': 'account.account' + ',' +
-                str(self.get_account_by_kind('revenue')),
+                str(self.mws_account.default_account_revenue.id),
             'res': None,
             'field': model_field.id,
         }])

@@ -22,8 +22,8 @@ if os.path.isdir(DIR):
 import unittest
 import trytond.tests.test_tryton
 from trytond.tests.test_tryton import POOL, USER, DB_NAME, CONTEXT
-from test_base import TestBase
 from trytond.transaction import Transaction
+from test_base import TestBase, load_json
 
 
 class TestProduct(TestBase):
@@ -68,6 +68,24 @@ class TestProduct(TestBase):
             self.assertEqual(product.ean.code, '1234567890123')
             self.assertEqual(product.upc.code, '123456789012')
             self.assertEqual(product.asin.code, 'BUYGBS6866')
+
+    def test_0020_create_product_using_amazon_data(self):
+        """
+        Tests if product is created using amazon data
+        """
+        Product = POOL.get('product.product')
+
+        with Transaction().start(DB_NAME, USER, CONTEXT):
+            self.setup_defaults()
+
+            with Transaction().set_context(
+                    {'amazon_mws_account': self.mws_account.id}):
+                self.assertEqual(Product.search([], count=True), 0)
+
+                product_data = load_json('products', 'product-1')
+                Product.create_using_amazon_data(product_data)
+
+                self.assertEqual(Product.search([], count=True), 1)
 
 
 def suite():
