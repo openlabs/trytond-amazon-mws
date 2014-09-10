@@ -242,8 +242,9 @@ class TestBase(unittest.TestCase):
 
         # TODO: This should work without creating new properties
         self.Property.create([{
-            'value': 'account.account' + ',' +
-                str(self.mws_account.default_account_revenue.id),
+            'value': 'account.account' + ',' + str(
+                self.mws_account.default_account_revenue.id
+            ),
             'res': None,
             'field': model_field.id,
         }])
