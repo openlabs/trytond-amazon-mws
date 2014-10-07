@@ -16,6 +16,12 @@ this repository contains the full copyright notices and license terms. -->
             <field name="name">template_form</field>
         </record>
 
+        <record model="ir.ui.view" id="product_mws_account_tree">
+            <field name="model">product.mws.account</field>
+            <field name="type">tree</field>
+            <field name="name">product_mws_account_tree</field>
+        </record>
+
         <record model="ir.action.wizard" id="wizard_export_catalog">
             <field name="name">Export Product Catalog to Amazon</field>
             <field name="wiz_name">amazon.export_catalog</field>

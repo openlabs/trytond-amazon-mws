@@ -4,7 +4,7 @@
 
     Amazon
 
-    :copyright: (c) 2013 by Openlabs Technologies & Consulting (P) Limited
+    :copyright: (c) 2013-2014 by Openlabs Technologies & Consulting (P) Limited
     :license: BSD, see LICENSE for more details.
 """
 from mws import mws
@@ -51,6 +51,11 @@ class MWSAccount(ModelSQL, ModelView):
         ], depends=['company'], required=True
     ))
 
+    warehouse = fields.Many2One(
+        'stock.location', 'Warehouse',
+        domain=[('type', '=', 'warehouse')], required=True
+    )
+
     @staticmethod
     def default_default_uom():
         UoM = Pool().get('product.uom')
@@ -58,12 +63,7 @@ class MWSAccount(ModelSQL, ModelView):
         unit = UoM.search([
             ('name', '=', 'Unit'),
         ])
-        return unit and unit[0] or None
-
-    warehouse = fields.Many2One(
-        'stock.location', 'Warehouse',
-        domain=[('type', '=', 'warehouse')], required=True
-    )
+        return unit and unit[0].id or None
 
     @classmethod
     def default_warehouse(cls):

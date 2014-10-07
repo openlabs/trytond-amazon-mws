@@ -57,32 +57,40 @@ major_version = int(major_version)
 minor_version = int(minor_version)
 
 requires = ['python-amazon-mws']
+
+MODULE2PREFIX = {
+    'sale_shop': 'trytonzz'
+}
+MODULE = "amazon_mws"
+PREFIX = "trytond"
 for dep in info.get('depends', []):
     if not re.match(r'(ir|res|webdav)(\W|$)', dep):
-        requires.append('trytond_%s >= %s.%s, < %s.%s' % (
-            dep, major_version, minor_version, major_version, minor_version + 1
-        ))
-requires.append('trytond >= %s.%s, < %s.%s' % (
-    major_version, minor_version, major_version, minor_version + 1
-))
+        requires.append(
+            '%s_%s >= %s.%s, < %s.%s' % (
+                MODULE2PREFIX.get(dep, 'trytond'), dep,
+                major_version, minor_version, major_version,
+                minor_version + 1
+            )
+        )
 
 setup(
-    name='trytond_amazon_mws',
+    name='%s_%s' % (PREFIX, MODULE),
     version=info.get('version', '0.0.1'),
     description='Amazon MWS Integration',
     long_description=read('README.md'),
     author='Openlabs Technologies and Consulting P Ltd.',
     url='http://openlabs.co.in/',
     download_url="https://github.com/openlabs/trytond-amazon-mws",
-    package_dir={'trytond.modules.amazon_mws': '.'},
+    package_dir={'trytond.modules.%s' % MODULE: '.'},
     packages=[
-        'trytond.modules.amazon_mws',
-        'trytond.modules.amazon_mws.tests',
+        'trytond.modules.%s' % MODULE,
+        'trytond.modules.%s.tests' % MODULE,
     ],
     package_data={
-        'trytond.modules.amazon_mws': info.get('xml', []) + [
-            'tryton.cfg', 'view/*.xml'
-        ],
+        'trytond.modules.%s' % MODULE:
+            info.get('xml', []) + [
+                'tryton.cfg', 'view/*xml'
+            ],
     },
     classifiers=[
         'Development Status :: 4 - Beta',
@@ -105,8 +113,8 @@ setup(
     zip_safe=False,
     entry_points="""
     [trytond.modules]
-    amazon_mws = trytond.modules.amazon_mws
-    """,
+    %s = trytond.modules.%s
+    """ % (MODULE, MODULE),
     test_suite='tests',
     test_loader='trytond.test_loader:Loader',
     cmdclass={
