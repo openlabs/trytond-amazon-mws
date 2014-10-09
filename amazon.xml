@@ -6,51 +6,12 @@
         <record model="ir.ui.view" id="amazon_mws_account_view_form">
             <field name="model">amazon.mws.account</field>
             <field name="type">form</field>
-            <field name="arch" type="xml">
-                <![CDATA[
-                    <form string="Amazon MWS Account">
-                        <label name="merchant_id" />
-                        <field name="merchant_id" />
-                        <label name="marketplace_id" />
-                        <field name="marketplace_id" />
-                        <label name="access_key"/>
-                        <field name="access_key"/>
-                        <label name="secret_key"/>
-                        <field name="secret_key"/>
-                        <label name="company"/>
-                        <field name="company"/>
-                        <label name="warehouse"/>
-                        <field name="warehouse"/>
-                        <label name="default_uom"/>
-                        <field name="default_uom"/>
-                        <notebook>
-                            <page id="account_details" string="Account Details">
-                                <label name="default_account_revenue"/>
-                                <field name="default_account_revenue"/>
-                                <label name="default_account_expense"/>
-                                <field name="default_account_expense"/>
-                            </page>
-                        </notebook>
-                        <button string="Check Service Status" name="check_service_status" colspan="2"/>
-                        <button string="Check Amazon MWS Account Settings"
-                            name="check_amazon_settings" colspan="2"/>
-                    </form>
-                ]]>
-            </field>
+            <field name="name">mws_account_form</field>
         </record>
         <record model="ir.ui.view" id="amazon_mws_account_view_tree">
             <field name="model">amazon.mws.account</field>
             <field name="type">tree</field>
-            <field name="arch" type="xml">
-                <![CDATA[
-                    <tree string="Amazon MWS Accounts">
-                        <field name="merchant_id" />
-                        <field name="marketplace_id" />
-                        <field name="access_key" />
-                        <field name="secret_key"/>
-                    </tree>
-                ]]>
-            </field>
+            <field name="name">mws_account_tree</field>
         </record>
 
         <record model="ir.action.act_window" id="act_amazon_mws_account_form">

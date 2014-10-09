@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+
+<form string="Amazon MWS Account">
+    <label name="merchant_id" />
+    <field name="merchant_id" />
+    <label name="marketplace_id" />
+    <field name="marketplace_id" />
+    <label name="access_key"/>
+    <field name="access_key"/>
+    <label name="secret_key"/>
+    <field name="secret_key"/>
+    <label name="company"/>
+    <field name="company"/>
+    <label name="warehouse"/>
+    <field name="warehouse"/>
+    <label name="default_uom"/>
+    <field name="default_uom"/>
+    <notebook>
+        <page id="account_details" string="Account Details">
+            <label name="default_account_revenue"/>
+            <field name="default_account_revenue"/>
+            <label name="default_account_expense"/>
+            <field name="default_account_expense"/>
+        </page>
+    </notebook>
+    <button string="Check Service Status" name="check_service_status" colspan="2"/>
+    <button string="Check Amazon MWS Account Settings"
+        name="check_amazon_settings" colspan="2"/>
+</form>
