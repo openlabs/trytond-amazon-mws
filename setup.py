@@ -77,7 +77,7 @@ setup(
     name='%s_%s' % (PREFIX, MODULE),
     version=info.get('version', '0.0.1'),
     description='Amazon MWS Integration',
-    long_description=read('README.md'),
+    long_description=read('README.rst'),
     author='Openlabs Technologies and Consulting P Ltd.',
     url='http://openlabs.co.in/',
     download_url="https://github.com/openlabs/trytond-amazon-mws",
