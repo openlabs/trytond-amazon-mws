@@ -1,0 +1,8 @@
+include INSTALL
+include README.rst
+include TODO
+include COPYRIGHT
+include CHANGELOG
+include MIGRATION
+include LICENSE
+include Makefile
