@@ -1,8 +1,6 @@
+--extra-index-url https://pypi.openlabs.us/pypi/
 
-git+ssh://git@github.com/openlabs/trytond-product-code.git@develop
-
-# Install zikzakmedia's sale shop module from bitbucket.
-https://bitbucket.org/zikzakmedia/trytond-sale_shop/get/default.tar.gz
+trytonzz_sale_shop==3.2.0
 
 # Install this package itself
 .

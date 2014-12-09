@@ -25,6 +25,9 @@ class MWSAccount(ModelSQL, ModelView):
     "Amazon MWS Account"
     __name__ = 'amazon.mws.account'
 
+    name = fields.Char("Name", required=True)
+    shop = fields.Many2One('sale.shop', "Shop", required=True)
+
     # These are the credentials that you receive when you register a seller
     # account with Amazon MWS
     merchant_id = fields.Char("Merchant ID", required=True)
@@ -51,10 +54,29 @@ class MWSAccount(ModelSQL, ModelView):
         ], depends=['company'], required=True
     ))
 
-    warehouse = fields.Many2One(
-        'stock.location', 'Warehouse',
-        domain=[('type', '=', 'warehouse')], required=True
+    warehouse = fields.Function(
+        fields.Many2One('stock.location', 'Warehouse'),
+        'on_change_with_warehouse'
     )
+
+    price_list = fields.Function(
+        fields.Many2One('product.price_list', 'PriceList'),
+        'on_change_with_price_list'
+    )
+
+    @fields.depends('shop')
+    def on_change_with_warehouse(self, name=None):
+        """
+        Return warehouse from shop
+        """
+        return self.shop and self.shop.warehouse.id or None
+
+    @fields.depends('shop')
+    def on_change_with_price_list(self, name=None):
+        """
+        Return price list of shop
+        """
+        return self.shop and self.shop.price_list.id or None
 
     @staticmethod
     def default_default_uom():
@@ -64,14 +86,6 @@ class MWSAccount(ModelSQL, ModelView):
             ('name', '=', 'Unit'),
         ])
         return unit and unit[0].id or None
-
-    @classmethod
-    def default_warehouse(cls):
-        "Default value for warehouse"
-        Location = Pool().get('stock.location')
-        locations = Location.search(cls.warehouse.domain)
-        if len(locations) == 1:
-            return locations[0].id
 
     @staticmethod
     def default_company():
