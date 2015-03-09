@@ -5,7 +5,7 @@
 
     Setup Module
 
-    :copyright: (c) 2013-2014 by Openlabs Technologies & Consulting (P) Limited
+    :copyright: (c) 2013-2015 by Openlabs Technologies & Consulting (P) Limited
     :license: BSD, see LICENSE for more details.
 """
 from setuptools import setup, Command
@@ -14,6 +14,7 @@ import os
 import ConfigParser
 import sys
 import unittest
+import time
 
 
 class SQLiteTest(Command):
@@ -31,9 +32,38 @@ class SQLiteTest(Command):
         pass
 
     def run(self):
-        from trytond.config import CONFIG
-        CONFIG['db_type'] = 'sqlite'
+        os.environ['TRYTOND_DATABASE_URI'] = 'sqlite://'
         os.environ['DB_NAME'] = ':memory:'
+
+        from tests import suite
+        test_result = unittest.TextTestRunner(verbosity=3).run(suite())
+
+        if test_result.wasSuccessful():
+            sys.exit(0)
+        sys.exit(-1)
+
+
+class PostgresTest(Command):
+    """
+    Run the tests on Postgres.
+    """
+    description = "Run tests on Postgresql"
+
+    user_options = []
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        if self.distribution.tests_require:
+            self.distribution.fetch_build_eggs(self.distribution.tests_require)
+
+        os.environ['TRYTOND_DATABASE_URI'] = 'postgresql://'
+
+        os.environ['DB_NAME'] = 'test_' + str(int(time.time()))
 
         from tests import suite
         test_result = unittest.TextTestRunner(verbosity=3).run(suite())
@@ -103,7 +133,6 @@ setup(
         'License :: OSI Approved :: BSD License',
         'Natural Language :: English',
         'Operating System :: OS Independent',
-        'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
         'Topic :: Office/Business',
     ],
@@ -119,5 +148,6 @@ setup(
     test_loader='trytond.test_loader:Loader',
     cmdclass={
         'test': SQLiteTest,
+        'test_on_postgres': PostgresTest,
     },
 )
