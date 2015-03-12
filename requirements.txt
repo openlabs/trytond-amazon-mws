@@ -1,5 +1,7 @@
 --extra-index-url https://pypi.openlabs.us/pypi/
 
+psycopg2
+
 trytonzz_sale_shop==3.2.0
 
 # Install this package itself
