@@ -42,6 +42,7 @@ class TestAmazon(TestBase):
             ], limit=1)
 
             account = self.MWSAccount.create([{
+                'name': 'AmazonAccount',
                 'merchant_id': '1234',
                 'marketplace_id': '3456',
                 'access_key': 'AWS1',
@@ -50,6 +51,8 @@ class TestAmazon(TestBase):
                 'company': self.company.id,
                 'default_account_revenue': self.get_account_by_kind('revenue'),
                 'default_account_expense': self.get_account_by_kind('expense'),
+                'shop': self.shop,
+                'default_uom': self.uom,
             }])
 
             self.assert_(account)

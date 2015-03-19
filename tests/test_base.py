@@ -10,6 +10,7 @@ import json
 import unittest
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
+from decimal import Decimal
 
 import trytond.tests.test_tryton
 from trytond.tests.test_tryton import POOL, USER
@@ -69,13 +70,16 @@ class TestBase(unittest.TestCase):
         self.Country = POOL.get('country.country')
         self.Subdivision = POOL.get('country.subdivision')
         self.AccountTemplate = POOL.get('account.account.template')
+        self.SaleShop = POOL.get('sale.shop')
         self.Account = POOL.get('account.account')
         self.CreateChartAccount = POOL.get(
             'account.create_chart', type="wizard"
         )
+        self.Location = POOL.get('stock.location')
         self.User = POOL.get('res.user')
         self.PaymentTerm = POOL.get('account.invoice.payment_term')
         self.FiscalYear = POOL.get('account.fiscalyear')
+        self.PriceList = POOL.get('product.price_list')
         self.Sequence = POOL.get('ir.sequence')
         self.SequenceStrict = POOL.get('ir.sequence.strict')
         self.AccountConfiguration = POOL.get('account.configuration')
@@ -177,7 +181,7 @@ class TestBase(unittest.TestCase):
         )
 
         # Create payment term
-        self.PaymentTerm.create([{
+        self.payment_term, = self.PaymentTerm.create([{
             'name': 'Direct',
             'lines': [('create', [{'type': 'remainder'}])]
         }])
@@ -225,14 +229,34 @@ class TestBase(unittest.TestCase):
             }
         ])
 
+        self.price_list = self._create_pricelists()[1]
+
+        warehouse, = self.Location.search([
+            ('type', '=', 'warehouse')
+        ], limit=1)
+
+        self.shop, = self.SaleShop.create([{
+            'name': 'Default Shop',
+            'price_list': self.price_list,
+            'warehouse': warehouse,
+            'payment_term': self.payment_term,
+            'company': self.company.id,
+            'users': [('add', [USER])]
+        }])
+        self.User.set_preferences({'shop': self.shop})
+
         self.mws_account, = self.MWSAccount.create([{
+            'name': 'AmazonAccount',
             'merchant_id': '1234',
             'marketplace_id': '3456',
             'access_key': 'AWS1',
             'secret_key': 'S013',
+            'warehouse': warehouse.id,
             'company': self.company.id,
             'default_account_revenue': self.get_account_by_kind('revenue'),
             'default_account_expense': self.get_account_by_kind('expense'),
+            'shop': self.shop,
+            'default_uom': self.uom,
         }])
 
         model_field, = self.ModelField.search([
@@ -268,3 +292,30 @@ class TestBase(unittest.TestCase):
         if not accounts and not silent:
             raise Exception("Account not found")
         return accounts and accounts[0].id or None
+
+    def _create_pricelists(self):
+        """
+        Create the pricelists
+        """
+        # Setup the pricelists
+        self.party_pl_margin = Decimal('1.10')
+        self.guest_pl_margin = Decimal('1.20')
+        user_price_list, = self.PriceList.create([{
+            'name': 'PL 1',
+            'company': self.company.id,
+            'lines': [
+                ('create', [{
+                    'formula': 'unit_price * %s' % self.party_pl_margin
+                }])
+            ],
+        }])
+        guest_price_list, = self.PriceList.create([{
+            'name': 'PL 2',
+            'company': self.company.id,
+            'lines': [
+                ('create', [{
+                    'formula': 'unit_price * %s' % self.guest_pl_margin
+                }])
+            ],
+        }])
+        return guest_price_list.id, user_price_list.id
