@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+
+<tryton>
+    <data>
+        <record model="ir.ui.view" id="sale_channel_view_form">
+            <field name="model">sale.channel</field>
+            <field name="inherit" ref="sale_channel.sale_channel_view_form"/>
+            <field name="name">sale_channel_form</field>
+          </record>
+
+        <!--Check Service Status Wizard-->
+        <record model="ir.action.wizard" id="check_service_status">
+            <field name="name">Check Service Status</field>
+            <field name="wiz_name">amazon.mws.check_service_status</field>
+            <field name="model">sale.channel</field>
+        </record>
+
+        <record model="ir.ui.view" id="check_service_status_view_form">
+            <field name="model">amazon.mws.check_service_status.view</field>
+            <field name="type">form</field>
+            <field name="name">wizard_check_service_status_view_form</field>
+        </record>
+
+        <!--Check Amazon Settings Wizard-->
+        <record model="ir.action.wizard" id="check_amazon_settings">
+            <field name="name">Check Amazon Settings</field>
+            <field name="wiz_name">amazon.mws.check_amazon_settings</field>
+            <field name="model">sale.channel</field>
+        </record>
+
+        <record model="ir.ui.view" id="check_amazon_settings_view_form">
+            <field name="model">amazon.mws.check_amazon_settings.view</field>
+            <field name="type">form</field>
+            <field name="name">wizard_check_amazon_settings_view_form</field>
+        </record>
+
+    </data>
+</tryton>

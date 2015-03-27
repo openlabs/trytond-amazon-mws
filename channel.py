@@ -1,49 +1,58 @@
 # -*- coding: utf-8 -*-
 """
-    amazon
+    channle.py
 
-    Amazon
-
-    :copyright: (c) 2013-2014 by Openlabs Technologies & Consulting (P) Limited
+    :copyright: (c) 2015 by Openlabs Technologies & Consulting (P) Limited
     :license: BSD, see LICENSE for more details.
 """
 from mws import mws
-from trytond.model import ModelView, ModelSQL, fields
+from trytond.model import ModelView, fields
 from trytond.wizard import Wizard, StateView, Button
 from trytond.transaction import Transaction
 from trytond.pyson import Eval
-from trytond.pool import Pool
+from trytond.pool import Pool, PoolMeta
 
+__metaclass__ = PoolMeta
 
 __all__ = [
-    'MWSAccount', 'CheckServiceStatusView', 'CheckServiceStatus',
+    'SaleChannel', 'CheckServiceStatusView', 'CheckServiceStatus',
     'CheckAmazonSettingsView', 'CheckAmazonSettings'
 ]
 
+AMAZON_MWS_STATES = {
+    'required': Eval('source') == 'amazon_mws',
+    'invisible': ~(Eval('source') == 'amazon_mws')
+}
 
-class MWSAccount(ModelSQL, ModelView):
+
+class SaleChannel:
     "Amazon MWS Account"
-    __name__ = 'amazon.mws.account'
-
-    name = fields.Char("Name", required=True)
-    shop = fields.Many2One('sale.shop', "Shop", required=True)
+    __name__ = 'sale.channel'
 
     # These are the credentials that you receive when you register a seller
     # account with Amazon MWS
-    merchant_id = fields.Char("Merchant ID", required=True)
-    marketplace_id = fields.Char("MarketPlace ID", required=True)
-    access_key = fields.Char("Access Key", required=True)
-    secret_key = fields.Char("Secret Key", required=True)
+    merchant_id = fields.Char(
+        "Merchant ID", states=AMAZON_MWS_STATES, depends=['source']
+    )
+    marketplace_id = fields.Char(
+        "MarketPlace ID", states=AMAZON_MWS_STATES, depends=['source']
+    )
+    access_key = fields.Char(
+        "Access Key", states=AMAZON_MWS_STATES, depends=['source']
+    )
+    secret_key = fields.Char(
+        "Secret Key", states=AMAZON_MWS_STATES, depends=['source']
+    )
 
-    company = fields.Many2One("company.company", "Company", required=True)
     default_uom = fields.Many2One(
-        'product.uom', 'Default Product UOM', required=True
+        'product.uom', 'Default Product UOM',
+        states=AMAZON_MWS_STATES, depends=['source']
     )
     default_account_expense = fields.Property(fields.Many2One(
         'account.account', 'Account Expense', domain=[
             ('kind', '=', 'expense'),
             ('company', '=', Eval('company')),
-        ], depends=['company'], required=True
+        ], states=AMAZON_MWS_STATES, depends=['company', 'source'],
     ))
 
     #: Used to set revenue account while creating products.
@@ -51,32 +60,19 @@ class MWSAccount(ModelSQL, ModelView):
         'account.account', 'Account Revenue', domain=[
             ('kind', '=', 'revenue'),
             ('company', '=', Eval('company')),
-        ], depends=['company'], required=True
+        ], states=AMAZON_MWS_STATES, depends=['source', 'company']
     ))
 
-    warehouse = fields.Function(
-        fields.Many2One('stock.location', 'Warehouse'),
-        'on_change_with_warehouse'
-    )
+    @classmethod
+    def get_source(cls):
+        """
+        Get the source
+        """
+        sources = super(SaleChannel, cls).get_source()
 
-    price_list = fields.Function(
-        fields.Many2One('product.price_list', 'PriceList'),
-        'on_change_with_price_list'
-    )
+        sources.append(('amazon_mws', 'Amazon MWS'))
 
-    @fields.depends('shop')
-    def on_change_with_warehouse(self, name=None):
-        """
-        Return warehouse from shop
-        """
-        return self.shop and self.shop.warehouse.id or None
-
-    @fields.depends('shop')
-    def on_change_with_price_list(self, name=None):
-        """
-        Return price list of shop
-        """
-        return self.shop and self.shop.price_list.id or None
+        return sources
 
     @staticmethod
     def default_default_uom():
@@ -87,16 +83,12 @@ class MWSAccount(ModelSQL, ModelView):
         ])
         return unit and unit[0].id or None
 
-    @staticmethod
-    def default_company():
-        return Transaction().context.get('company')
-
     @classmethod
     def __setup__(cls):
         """
         Setup the class before adding to pool
         """
-        super(MWSAccount, cls).__setup__()
+        super(SaleChannel, cls).__setup__()
         cls._buttons.update({
             'check_service_status': {},
             'check_amazon_settings': {},
@@ -128,21 +120,21 @@ class MWSAccount(ModelSQL, ModelView):
 
     @classmethod
     @ModelView.button_action('amazon_mws.check_service_status')
-    def check_service_status(cls, accounts):
+    def check_service_status(cls, channels):
         """
         Check GREEN, GREEN_I, YELLOW or RED status
 
-        :param accounts: Active record list of amazon mws accounts
+        :param channels: Active record list of sale channels
         """
         pass
 
     @classmethod
     @ModelView.button_action('amazon_mws.check_amazon_settings')
-    def check_amazon_settings(cls, accounts):
+    def check_amazon_settings(cls, channels):
         """
         Checks account settings configured
 
-        :param accounts: Active record list of amazon mws accounts
+        :param accounts: Active record list of sale channels
         """
         pass
 
@@ -177,12 +169,12 @@ class CheckServiceStatus(Wizard):
 
         :param data: Wizard data
         """
-        MWSAccount = Pool().get('amazon.mws.account')
+        SaleChannel = Pool().get('sale.channel')
 
-        account = MWSAccount(Transaction().context.get('active_id'))
+        channel = SaleChannel(Transaction().context.get('active_id'))
 
         res = {}
-        api = account.get_mws_api()
+        api = channel.get_mws_api()
         response = api.get_service_status().parsed
 
         status = response['Status']['value']
@@ -246,15 +238,15 @@ class CheckAmazonSettings(Wizard):
 
         :param data: Wizard data
         """
-        MWSAccount = Pool().get('amazon.mws.account')
+        SaleChannel = Pool().get('sale.channel')
 
-        account = MWSAccount(Transaction().context.get('active_id'))
+        channel = SaleChannel(Transaction().context.get('active_id'))
 
         res = {}
         api = mws.Feeds(
-            access_key=account.access_key,
-            secret_key=account.secret_key,
-            account_id=account.merchant_id,
+            access_key=channel.access_key,
+            secret_key=channel.secret_key,
+            account_id=channel.merchant_id,
         )
 
         try:

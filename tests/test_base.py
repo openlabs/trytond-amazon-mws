@@ -2,7 +2,7 @@
 """
     test_base
 
-    :copyright: (c) 2013 by Openlabs Technologies & Consulting (P) Limited
+    :copyright: (c) 2013-2015 by Openlabs Technologies & Consulting (P) Limited
     :license: BSD, see LICENSE for more details.
 """
 import os
@@ -70,7 +70,6 @@ class TestBase(unittest.TestCase):
         self.Country = POOL.get('country.country')
         self.Subdivision = POOL.get('country.subdivision')
         self.AccountTemplate = POOL.get('account.account.template')
-        self.SaleShop = POOL.get('sale.shop')
         self.Account = POOL.get('account.account')
         self.CreateChartAccount = POOL.get(
             'account.create_chart', type="wizard"
@@ -85,7 +84,7 @@ class TestBase(unittest.TestCase):
         self.AccountConfiguration = POOL.get('account.configuration')
         self.Property = POOL.get('ir.property')
         self.ModelField = POOL.get('ir.model.field')
-        self.MWSAccount = POOL.get('amazon.mws.account')
+        self.SaleChannel = POOL.get('sale.channel')
 
         with Transaction().set_context(company=None):
             self.party, = self.Party.create([{
@@ -235,28 +234,23 @@ class TestBase(unittest.TestCase):
             ('type', '=', 'warehouse')
         ], limit=1)
 
-        self.shop, = self.SaleShop.create([{
-            'name': 'Default Shop',
-            'price_list': self.price_list,
-            'warehouse': warehouse,
-            'payment_term': self.payment_term,
-            'company': self.company.id,
-            'users': [('add', [USER])]
-        }])
-        self.User.set_preferences({'shop': self.shop})
-
-        self.mws_account, = self.MWSAccount.create([{
-            'name': 'AmazonAccount',
+        self.sale_channel, = self.SaleChannel.create([{
+            'name': 'Amazon MWS Account',
             'merchant_id': '1234',
             'marketplace_id': '3456',
             'access_key': 'AWS1',
             'secret_key': 'S013',
             'warehouse': warehouse.id,
             'company': self.company.id,
+            'source': 'amazon_mws',
+            'currency': self.company.currency.id,
             'default_account_revenue': self.get_account_by_kind('revenue'),
             'default_account_expense': self.get_account_by_kind('expense'),
-            'shop': self.shop,
             'default_uom': self.uom,
+            'price_list': self.price_list,
+            'invoice_method': 'manual',
+            'shipment_method': 'manual',
+            'payment_term': self.payment_term,
         }])
 
         model_field, = self.ModelField.search([
@@ -267,7 +261,7 @@ class TestBase(unittest.TestCase):
         # TODO: This should work without creating new properties
         self.Property.create([{
             'value': 'account.account' + ',' + str(
-                self.mws_account.default_account_revenue.id
+                self.sale_channel.default_account_revenue.id
             ),
             'res': None,
             'field': model_field.id,

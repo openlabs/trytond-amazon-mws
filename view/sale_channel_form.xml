@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<data>
+    <xpath expr="//notebook" position="inside">
+      <page id="mws_account_details" string="MWS Account"
+                states="{'invisible': Not(Eval('source') == 'amazon_mws')}">
+            <label name="merchant_id" />
+            <field name="merchant_id" />
+            <label name="marketplace_id" />
+            <field name="marketplace_id" />
+            <label name="access_key"/>
+            <field name="access_key"/>
+            <label name="secret_key"/>
+            <field name="secret_key"/>
+            <newline/>
+            <separator id="mws_account_defaults" string="MWS Defaults" colspan="2"/>
+            <newline/>
+            <label name="default_account_revenue"/>
+            <field name="default_account_revenue"/>
+            <label name="default_account_expense"/>
+            <field name="default_account_expense"/>
+            <label name="default_uom"/>
+            <field name="default_uom"/>
+        </page>
+    </xpath>
+    <xpath expr="//notebook" position="after">
+
+       <group id="check_amaon_settings" col="2" colspan="6"
+                states="{'invisible': Not(Eval('source') == 'amazon_mws')}">
+            <button string="Check Amazon MWS Service Status" name="check_service_status"/>
+            <button string="Check Amazon MWS Account Settings" name="check_amazon_settings"/>
+        </group>
+    </xpath>
+</data>
