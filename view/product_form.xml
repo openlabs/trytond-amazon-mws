@@ -4,6 +4,6 @@ this repository contains the full copyright notices and license terms. -->
 <data>
     <xpath expr="//field[@name='codes']" position="after">
         <newline/>
-        <field name="mws_accounts" colspan="6"/>
+        <field name="channels" colspan="6"/>
     </xpath>
 </data>

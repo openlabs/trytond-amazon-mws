@@ -8,12 +8,12 @@
     :license: BSD, see LICENSE for more details.
 """
 from trytond.pool import Pool
-from .amazon import (
-    MWSAccount, CheckServiceStatus, CheckServiceStatusView,
+from .channel import (
+    SaleChannel, CheckServiceStatus, CheckServiceStatusView,
     CheckAmazonSettingsView, CheckAmazonSettings
 )
 from .product import (
-    Product, ExportCatalogStart, ExportCatalog, ProductMwsAccount,
+    Product, ExportCatalogStart, ExportCatalog, ProductSaleChannel,
     ExportCatalogDone, ExportCatalogPricingStart, ExportCatalogPricing,
     ExportCatalogPricingDone, ExportCatalogInventoryStart,
     ExportCatalogInventory, ExportCatalogInventoryDone, ProductCode, Template,
@@ -25,11 +25,11 @@ def register():
     Register classes with pool
     """
     Pool.register(
-        MWSAccount,
+        SaleChannel,
         Product,
         ProductCode,
         Template,
-        ProductMwsAccount,
+        ProductSaleChannel,
         ExportCatalogStart,
         ExportCatalogDone,
         ExportCatalogPricingStart,

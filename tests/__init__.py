@@ -4,14 +4,13 @@
 
     Initialize tests
 
-    :copyright: (c) 2013 by Openlabs Technologies & Consulting (P) Limited
+    :copyright: (c) 2013-2015 by Openlabs Technologies & Consulting (P) Limited
     :license: BSD, see LICENSE for more details.
 """
 import unittest
 import trytond.tests.test_tryton
 
 from tests.test_views import TestViewDepend
-from tests.test_amazon import TestAmazon
 from tests.test_product import TestProduct
 
 
@@ -22,7 +21,6 @@ def suite():
     test_suite = trytond.tests.test_tryton.suite()
     test_suite.addTests([
         unittest.TestLoader().loadTestsFromTestCase(TestViewDepend),
-        unittest.TestLoader().loadTestsFromTestCase(TestAmazon),
         unittest.TestLoader().loadTestsFromTestCase(TestProduct),
     ])
     return test_suite
