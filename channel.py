@@ -70,7 +70,7 @@ class SaleChannel:
         """
         sources = super(SaleChannel, cls).get_source()
 
-        sources.append(('amazon_mws', 'Amazon MWS'))
+        sources.append(('amazon_mws', 'Amazon Marketplace'))
 
         return sources
 

@@ -13,7 +13,7 @@ from .channel import (
     CheckAmazonSettingsView, CheckAmazonSettings
 )
 from .product import (
-    Product, ExportCatalogStart, ExportCatalog, ProductSaleChannel,
+    Product, ExportCatalogStart, ExportCatalog,
     ExportCatalogDone, ExportCatalogPricingStart, ExportCatalogPricing,
     ExportCatalogPricingDone, ExportCatalogInventoryStart,
     ExportCatalogInventory, ExportCatalogInventoryDone, ProductCode, Template,
@@ -29,7 +29,6 @@ def register():
         Product,
         ProductCode,
         Template,
-        ProductSaleChannel,
         ExportCatalogStart,
         ExportCatalogDone,
         ExportCatalogPricingStart,

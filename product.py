@@ -9,7 +9,7 @@ from decimal import Decimal
 from lxml import etree
 from lxml.builder import E
 
-from trytond.model import ModelSQL, ModelView, fields
+from trytond.model import ModelView, fields
 from trytond.transaction import Transaction
 from trytond.wizard import Wizard, StateView, StateTransition, Button
 from trytond.pool import PoolMeta, Pool
@@ -17,7 +17,7 @@ from mws import mws
 
 
 __all__ = [
-    'Product', 'ExportCatalogStart', 'ExportCatalog', 'ProductSaleChannel',
+    'Product', 'ExportCatalogStart', 'ExportCatalog',
     'ExportCatalogDone', 'ExportCatalogPricingStart', 'ExportCatalogPricing',
     'ExportCatalogPricingDone', 'ExportCatalogInventoryStart',
     'ExportCatalogInventory', 'ExportCatalogInventoryDone', 'ProductCode',
@@ -37,9 +37,6 @@ class Product:
     "Product"
     __name__ = "product.product"
 
-    channels = fields.One2Many(
-        'product.sale.channel', 'product', 'Sale Channels',
-    )
     asin = fields.Function(fields.Many2One(
         'product.product.code', 'ASIN'
     ), 'get_codes')
@@ -413,53 +410,6 @@ class ProductCode:
             ('asin', 'ASIN'),
             ('gtin', 'GTIN')
         ])
-
-
-class ProductSaleChannel(ModelSQL, ModelView):
-    '''Product - Sale Channel
-
-    This model keeps a record of a product's association with Sale Channels.
-    A product can be listen on multiple marketplaces
-    '''
-    __name__ = 'product.sale.channel'
-
-    channel = fields.Many2One(
-        'sale.channel', 'Sale Channel', required=True
-    )
-    product = fields.Many2One(
-        'product.product', 'Product', required=True
-    )
-
-    @classmethod
-    def __setup__(cls):
-        '''
-        Setup the class and define constraints
-        '''
-        super(ProductSaleChannel, cls).__setup__()
-        cls._sql_constraints += [
-            (
-                'channel_product_unique',
-                'UNIQUE(channel, product)',
-                'Each product can be linked to only one Sale Channel!'
-            )
-        ]
-
-    @classmethod
-    def create(cls, vlist):
-        """If a record already exists for the same product and channel combo,
-        then just remove that one from the list instead of creating a new.
-        This is because the Feed being send to amazon might be for the
-        updation of a product which was already exported earlier
-
-        :params vlist: List of product data to be created
-        """
-        for vals in vlist:
-            if cls.search([
-                ('product', '=', vals['product']),
-                ('channel', '=', vals['channel'])
-            ]):
-                vlist.remove(vals)
-        return super(ProductSaleChannel, cls).create(vlist)
 
 
 class ExportCatalogStart(ModelView):
