@@ -2,14 +2,14 @@
 '''
     product
 
-    :copyright: (c) 2013-2014 by Openlabs Technologies & Consulting (P) Limited
+    :copyright: (c) 2013-2015 by Openlabs Technologies & Consulting (P) Limited
     :license: BSD, see LICENSE for more details.
 '''
 from decimal import Decimal
 from lxml import etree
 from lxml.builder import E
 
-from trytond.model import ModelSQL, ModelView, fields
+from trytond.model import ModelView, fields
 from trytond.transaction import Transaction
 from trytond.wizard import Wizard, StateView, StateTransition, Button
 from trytond.pool import PoolMeta, Pool
@@ -17,7 +17,7 @@ from mws import mws
 
 
 __all__ = [
-    'Product', 'ExportCatalogStart', 'ExportCatalog', 'ProductMwsAccount',
+    'Product', 'ExportCatalogStart', 'ExportCatalog',
     'ExportCatalogDone', 'ExportCatalogPricingStart', 'ExportCatalogPricing',
     'ExportCatalogPricingDone', 'ExportCatalogInventoryStart',
     'ExportCatalogInventory', 'ExportCatalogInventoryDone', 'ProductCode',
@@ -37,9 +37,6 @@ class Product:
     "Product"
     __name__ = "product.product"
 
-    mws_accounts = fields.One2Many(
-        'product.mws.account', 'product', 'MWS Accounts',
-    )
     asin = fields.Function(fields.Many2One(
         'product.product.code', 'ASIN'
     ), 'get_codes')
@@ -97,7 +94,7 @@ class Product:
         :param sku: Product Seller SKU from Amazon
         :returns: Active record of Product Created
         """
-        MWSAccount = Pool().get('amazon.mws.account')
+        SaleChannel = Pool().get('sale.channel')
 
         products = cls.search([('code', '=', sku)])
 
@@ -106,13 +103,13 @@ class Product:
 
         # if product is not found get the info from amazon and
         # delegate to create_using_amazon_data
-        mws_account = MWSAccount(
-            Transaction().context.get('amazon_mws_account')
+        sale_channel = SaleChannel(
+            Transaction().context.get('sale_channel')
         )
-        api = mws_account.get_product_api()
+        api = sale_channel.get_product_api()
 
         product_data = api.get_matching_product_for_id(
-            mws_account.marketplace_id, 'SellerSKU', [sku]
+            sale_channel.marketplace_id, 'SellerSKU', [sku]
         ).parsed
 
         return cls.create_using_amazon_data(product_data)
@@ -127,21 +124,21 @@ class Product:
         :param product_data: Product data from amazon
         :returns: Dictionary of values
         """
-        MWSAccount = Pool().get('amazon.mws.account')
+        SaleChannel = Pool().get('sale.channel')
 
-        mws_account = MWSAccount(
-            Transaction().context.get('amazon_mws_account')
+        sale_channel = SaleChannel(
+            Transaction().context.get('sale_channel')
         )
 
         return {
             'name': product_attributes['Title']['value'],
             'list_price': Decimal('0.01'),
             'cost_price': Decimal('0.01'),
-            'default_uom': mws_account.default_uom.id,
+            'default_uom': sale_channel.default_uom.id,
             'salable': True,
-            'sale_uom': mws_account.default_uom.id,
-            'account_expense': mws_account.default_account_expense.id,
-            'account_revenue': mws_account.default_account_revenue.id,
+            'sale_uom': sale_channel.default_uom.id,
+            'account_expense': sale_channel.default_account_expense.id,
+            'account_revenue': sale_channel.default_account_revenue.id,
         }
 
     @classmethod
@@ -171,8 +168,8 @@ class Product:
             'products': [('create', [{
                 'code': product_data['Id']['value'],
                 'description': product_attributes['Title']['value'],
-                'mws_accounts': [('create', [{
-                    'account': Transaction().context.get('amazon_mws_account')
+                'channel_listings': [('create', [{
+                    'channel': Transaction().context.get('sale_channel')
                 }])]
             }])],
         })
@@ -187,10 +184,10 @@ class Product:
 
         :param products: List of active records of products
         """
-        MWSAccount = Pool().get('amazon.mws.account')
+        SaleChannel = Pool().get('sale.channel')
 
-        mws_account = MWSAccount(
-            Transaction().context['amazon_mws_account']
+        sale_channel = SaleChannel(
+            Transaction().context['sale_channel']
         )
 
         NS = "http://www.w3.org/2001/XMLSchema-instance"
@@ -243,7 +240,7 @@ class Product:
         envelope_xml = E.AmazonEnvelope(
             E.Header(
                 E.DocumentVersion('1.01'),
-                E.MerchantIdentifier(mws_account.merchant_id)
+                E.MerchantIdentifier(sale_channel.merchant_id)
             ),
             E.MessageType('Product'),
             E.PurgeAndReplace('false'),
@@ -253,21 +250,21 @@ class Product:
         envelope_xml.set(location_attribute, 'amznenvelope.xsd')
 
         feeds_api = mws.Feeds(
-            mws_account.access_key,
-            mws_account.secret_key,
-            mws_account.merchant_id
+            sale_channel.access_key,
+            sale_channel.secret_key,
+            sale_channel.merchant_id
         )
 
         response = feeds_api.submit_feed(
             etree.tostring(envelope_xml),
             feed_type='_POST_PRODUCT_DATA_',
-            marketplaceids=[mws_account.marketplace_id]
+            marketplaceids=[sale_channel.marketplace_id]
         )
 
         cls.write(products, {
-            'mws_accounts': [('create', [{
+            'channel_listings': [('create', [{
                 'product': product.id,
-                'account': mws_account.id,
+                'channel': sale_channel.id,
             } for product in products])]
         })
 
@@ -279,10 +276,10 @@ class Product:
 
         :param products: List of active records of products
         """
-        MWSAccount = Pool().get('amazon.mws.account')
+        SaleChannel = Pool().get('sale.channel')
 
-        mws_account = MWSAccount(
-            Transaction().context['amazon_mws_account']
+        sale_channel = SaleChannel(
+            Transaction().context['sale_channel']
         )
 
         NS = "http://www.w3.org/2001/XMLSchema-instance"
@@ -291,7 +288,7 @@ class Product:
         pricing_xml = []
         for product in products:
 
-            if mws_account in [acc.account for acc in product.mws_accounts]:
+            if sale_channel in [ch.channel for ch in product.channel_listings]:
                 pricing_xml.append(E.Message(
                     E.MessageID(str(product.id)),
                     E.OperationType('Update'),
@@ -300,7 +297,7 @@ class Product:
                         E.StandardPrice(
                             # TODO: Use a pricelist
                             str(product.template.list_price),
-                            currency=mws_account.company.currency.code
+                            currency=sale_channel.company.currency.code
                         ),
                     )
                 ))
@@ -308,7 +305,7 @@ class Product:
         envelope_xml = E.AmazonEnvelope(
             E.Header(
                 E.DocumentVersion('1.01'),
-                E.MerchantIdentifier(mws_account.merchant_id)
+                E.MerchantIdentifier(sale_channel.merchant_id)
             ),
             E.MessageType('Price'),
             E.PurgeAndReplace('false'),
@@ -318,15 +315,15 @@ class Product:
         envelope_xml.set(location_attribute, 'amznenvelope.xsd')
 
         feeds_api = mws.Feeds(
-            mws_account.access_key,
-            mws_account.secret_key,
-            mws_account.merchant_id
+            sale_channel.access_key,
+            sale_channel.secret_key,
+            sale_channel.merchant_id
         )
 
         response = feeds_api.submit_feed(
             etree.tostring(envelope_xml),
             feed_type='_POST_PRODUCT_PRICING_DATA_',
-            marketplaceids=[mws_account.marketplace_id]
+            marketplaceids=[sale_channel.marketplace_id]
         )
 
         return response.parsed
@@ -337,10 +334,10 @@ class Product:
 
         :param products: List of active records of products
         """
-        MWSAccount = Pool().get('amazon.mws.account')
+        SaleChannel = Pool().get('sale.channel')
 
-        mws_account = MWSAccount(
-            Transaction().context['amazon_mws_account']
+        sale_channel = SaleChannel(
+            Transaction().context['sale_channel']
         )
 
         NS = "http://www.w3.org/2001/XMLSchema-instance"
@@ -350,14 +347,14 @@ class Product:
         for product in products:
 
             with Transaction().set_context({
-                'locations': [mws_account.warehouse.id]
+                'locations': [sale_channel.warehouse.id]
             }):
                 quantity = product.quantity
 
             if not quantity:
                 continue
 
-            if mws_account in [acc.account for acc in product.mws_accounts]:
+            if sale_channel in [ch.channel for ch in product.channel_listins]:
                 inventory_xml.append(E.Message(
                     E.MessageID(str(product.id)),
                     E.OperationType('Update'),
@@ -373,7 +370,7 @@ class Product:
         envelope_xml = E.AmazonEnvelope(
             E.Header(
                 E.DocumentVersion('1.01'),
-                E.MerchantIdentifier(mws_account.merchant_id)
+                E.MerchantIdentifier(sale_channel.merchant_id)
             ),
             E.MessageType('Inventory'),
             E.PurgeAndReplace('false'),
@@ -383,15 +380,15 @@ class Product:
         envelope_xml.set(location_attribute, 'amznenvelope.xsd')
 
         feeds_api = mws.Feeds(
-            mws_account.access_key,
-            mws_account.secret_key,
-            mws_account.merchant_id
+            sale_channel.access_key,
+            sale_channel.secret_key,
+            sale_channel.merchant_id
         )
 
         response = feeds_api.submit_feed(
             etree.tostring(envelope_xml),
             feed_type='_POST_INVENTORY_AVAILABILITY_DATA_',
-            marketplaceids=[mws_account.marketplace_id]
+            marketplaceids=[sale_channel.marketplace_id]
         )
 
         return response.parsed
@@ -413,53 +410,6 @@ class ProductCode:
             ('asin', 'ASIN'),
             ('gtin', 'GTIN')
         ])
-
-
-class ProductMwsAccount(ModelSQL, ModelView):
-    '''Product - MWS Account
-
-    This model keeps a record of a product's association with MWS accounts.
-    A product can be listen on multiple marketplaces
-    '''
-    __name__ = 'product.mws.account'
-
-    account = fields.Many2One(
-        'amazon.mws.account', 'MWS Account', required=True
-    )
-    product = fields.Many2One(
-        'product.product', 'Product', required=True
-    )
-
-    @classmethod
-    def __setup__(cls):
-        '''
-        Setup the class and define constraints
-        '''
-        super(ProductMwsAccount, cls).__setup__()
-        cls._sql_constraints += [
-            (
-                'account_product_unique',
-                'UNIQUE(account, product)',
-                'Each product in can be linked to only one MWS account!'
-            )
-        ]
-
-    @classmethod
-    def create(cls, vlist):
-        """If a record already exists for the same product and account combo,
-        then just remove that one from the list instead of creating a new.
-        This is because the Feed being send to amazon might be for the
-        updation of a product which was already exported earlier
-
-        :params vlist: List of product data to be created
-        """
-        for vals in vlist:
-            if cls.search([
-                ('product', '=', vals['product']),
-                ('account', '=', vals['account'])
-            ]):
-                vlist.remove(vals)
-        return super(ProductMwsAccount, cls).create(vlist)
 
 
 class ExportCatalogStart(ModelView):
@@ -509,17 +459,15 @@ class ExportCatalog(Wizard):
         """
         Export the products selected to this amazon account
         """
-        MWSAccount = Pool().get('amazon.mws.account')
         Product = Pool().get('product.product')
+        SaleChannel = Pool().get('sale.channel')
 
-        mws_account = MWSAccount(Transaction().context['active_id'])
+        sale_channel = SaleChannel(Transaction().context.get('active_id'))
 
         if not self.start.products:
             return 'end'
 
-        with Transaction().set_context({
-            'amazon_mws_account': mws_account.id,
-        }):
+        with Transaction().set_context(sale_channel=sale_channel.id):
             response = Product.export_to_amazon(self.start.products)
 
         Transaction().set_context({'response': response})
@@ -548,7 +496,7 @@ class ExportCatalogPricingStart(ModelView):
         domain=[
             ('codes', 'not in', []),
             ('code', '!=', None),
-            ('mws_accounts', 'not in', []),
+            ('channel_listings', 'not in', []),
         ],
     )
 
@@ -587,17 +535,16 @@ class ExportCatalogPricing(Wizard):
         """
         Export the prices for products selected to this amazon account
         """
-        MWSAccount = Pool().get('amazon.mws.account')
         Product = Pool().get('product.product')
+        SaleChannel = Pool().get('sale.channel')
 
-        mws_account = MWSAccount(Transaction().context['active_id'])
+        sale_channel = SaleChannel(Transaction().context.get('active_id'))
 
         if not self.start.products:
             return 'end'
 
-        with Transaction().set_context({
-            'amazon_mws_account': mws_account.id,
-        }):
+        with Transaction().set_context(sale_channel=sale_channel.id):
+
             response = Product.export_pricing_to_amazon(self.start.products)
 
         Transaction().set_context({'response': response})
@@ -626,7 +573,7 @@ class ExportCatalogInventoryStart(ModelView):
         domain=[
             ('codes', 'not in', []),
             ('code', '!=', None),
-            ('mws_accounts', 'not in', []),
+            ('channel_listings', 'not in', []),
         ],
     )
 
@@ -665,17 +612,15 @@ class ExportCatalogInventory(Wizard):
         """
         Export the prices for products selected to this amazon account
         """
-        MWSAccount = Pool().get('amazon.mws.account')
         Product = Pool().get('product.product')
+        SaleChannel = Pool().get('sale.channel')
 
-        mws_account = MWSAccount(Transaction().context['active_id'])
+        sale_channel = SaleChannel(Transaction().context.get('active_id'))
 
         if not self.start.products:
             return 'end'
 
-        with Transaction().set_context({
-            'amazon_mws_account': mws_account.id,
-        }):
+        with Transaction().set_context(sale_channel=sale_channel.id):
             response = Product.export_inventory_to_amazon(self.start.products)
 
         Transaction().set_context({'response': response})

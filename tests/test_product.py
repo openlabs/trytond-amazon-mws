@@ -79,7 +79,8 @@ class TestProduct(TestBase):
             self.setup_defaults()
 
             with Transaction().set_context(
-                    {'amazon_mws_account': self.mws_account.id}):
+                {'sale_channel': self.sale_channel.id}
+            ):
                 self.assertEqual(Product.search([], count=True), 0)
 
                 product_data = load_json('products', 'product-1')
