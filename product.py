@@ -168,7 +168,7 @@ class Product:
             'products': [('create', [{
                 'code': product_data['Id']['value'],
                 'description': product_attributes['Title']['value'],
-                'channels': [('create', [{
+                'channel_listings': [('create', [{
                     'channel': Transaction().context.get('sale_channel')
                 }])]
             }])],
@@ -262,7 +262,7 @@ class Product:
         )
 
         cls.write(products, {
-            'channels': [('create', [{
+            'channel_listings': [('create', [{
                 'product': product.id,
                 'channel': sale_channel.id,
             } for product in products])]
@@ -288,7 +288,7 @@ class Product:
         pricing_xml = []
         for product in products:
 
-            if sale_channel in [ch.channel for ch in product.channels]:
+            if sale_channel in [ch.channel for ch in product.channel_listings]:
                 pricing_xml.append(E.Message(
                     E.MessageID(str(product.id)),
                     E.OperationType('Update'),
@@ -354,7 +354,7 @@ class Product:
             if not quantity:
                 continue
 
-            if sale_channel in [ch.channel for ch in product.channels]:
+            if sale_channel in [ch.channel for ch in product.channel_listins]:
                 inventory_xml.append(E.Message(
                     E.MessageID(str(product.id)),
                     E.OperationType('Update'),
@@ -496,7 +496,7 @@ class ExportCatalogPricingStart(ModelView):
         domain=[
             ('codes', 'not in', []),
             ('code', '!=', None),
-            ('channels', 'not in', []),
+            ('channel_listings', 'not in', []),
         ],
     )
 
@@ -573,7 +573,7 @@ class ExportCatalogInventoryStart(ModelView):
         domain=[
             ('codes', 'not in', []),
             ('code', '!=', None),
-            ('channels', 'not in', []),
+            ('channel_listings', 'not in', []),
         ],
     )
 
