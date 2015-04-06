@@ -106,6 +106,18 @@ class SaleChannel:
             account_id=self.merchant_id,
         )
 
+    def get_order_api(self):
+        """
+        Create an instance of Order api
+
+        :return: order api instance
+        """
+        return mws.Orders(
+            access_key=self.access_key,
+            secret_key=self.secret_key,
+            account_id=self.merchant_id,
+        )
+
     def get_product_api(self):
         """
         Create an instance of product api
