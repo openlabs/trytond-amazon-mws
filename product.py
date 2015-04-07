@@ -13,7 +13,6 @@ from trytond.model import ModelView, fields
 from trytond.transaction import Transaction
 from trytond.wizard import Wizard, StateView, StateTransition, Button
 from trytond.pool import PoolMeta, Pool
-from mws import mws
 
 
 __all__ = [
@@ -104,9 +103,9 @@ class Product:
         # if product is not found get the info from amazon and
         # delegate to create_using_amazon_data
         amazon_channel = SaleChannel(
-            Transaction().context.get('amazon_channel')
+            Transaction().context['amazon_channel']
         )
-        api = amazon_channel.get_product_api()
+        api = amazon_channel.get_amazon_product_api()
 
         product_data = api.get_matching_product_for_id(
             amazon_channel.marketplace_id, 'SellerSKU', [sku]
@@ -127,7 +126,7 @@ class Product:
         SaleChannel = Pool().get('sale.channel')
 
         amazon_channel = SaleChannel(
-            Transaction().context.get('amazon_channel')
+            Transaction().context['amazon_channel']
         )
 
         return {
@@ -169,7 +168,7 @@ class Product:
                 'code': product_data['Id']['value'],
                 'description': product_attributes['Title']['value'],
                 'channel_listings': [('create', [{
-                    'channel': Transaction().context.get('amazon_channel')
+                    'channel': Transaction().context['amazon_channel']
                 }])]
             }])],
         })
@@ -249,11 +248,7 @@ class Product:
 
         envelope_xml.set(location_attribute, 'amznenvelope.xsd')
 
-        feeds_api = mws.Feeds(
-            amazon_channel.access_key,
-            amazon_channel.secret_key,
-            amazon_channel.merchant_id
-        )
+        feeds_api = amazon_channel.get_amazon_feed_api()
 
         response = feeds_api.submit_feed(
             etree.tostring(envelope_xml),
@@ -316,11 +311,7 @@ class Product:
 
         envelope_xml.set(location_attribute, 'amznenvelope.xsd')
 
-        feeds_api = mws.Feeds(
-            amazon_channel.access_key,
-            amazon_channel.secret_key,
-            amazon_channel.merchant_id
-        )
+        feeds_api = amazon_channel.get_amazon_feed_api()
 
         response = feeds_api.submit_feed(
             etree.tostring(envelope_xml),
@@ -383,11 +374,7 @@ class Product:
 
         envelope_xml.set(location_attribute, 'amznenvelope.xsd')
 
-        feeds_api = mws.Feeds(
-            amazon_channel.access_key,
-            amazon_channel.secret_key,
-            amazon_channel.merchant_id
-        )
+        feeds_api = amazon_channel.get_amazon_feed_api()
 
         response = feeds_api.submit_feed(
             etree.tostring(envelope_xml),
