@@ -11,6 +11,8 @@
             <field name="access_key"/>
             <label name="secret_key"/>
             <field name="secret_key"/>
+            <label name="last_order_import_time"/>
+            <field name="last_order_import_time"/>
             <newline/>
             <separator id="mws_account_defaults" string="MWS Defaults" colspan="2"/>
             <newline/>
@@ -20,10 +22,11 @@
             <field name="default_account_expense"/>
             <label name="default_uom"/>
             <field name="default_uom"/>
-            <group id="check_amaon_settings" col="2" colspan="6"
+            <group id="check_amaon_settings" col="3" colspan="6"
                     states="{'invisible': Not(Eval('source') == 'amazon_mws')}">
                 <button string="Check Amazon MWS Service Status" name="check_service_status"/>
                 <button string="Check Amazon MWS Account Settings" name="check_amazon_settings"/>
+                <button string="Import Amazon MWS Orders" name="import_orders_button"/>
             </group>
         </page>
     </xpath>
