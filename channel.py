@@ -106,7 +106,7 @@ class SaleChannel:
             account_id=self.merchant_id,
         )
 
-    def get_order_api(self):
+    def get_amazon_order_api(self):
         """
         Create an instance of Order api
 
@@ -118,13 +118,23 @@ class SaleChannel:
             account_id=self.merchant_id,
         )
 
-    def get_product_api(self):
+    def get_amazon_product_api(self):
         """
         Create an instance of product api
 
         :return: Product API instance
         """
         return mws.Products(
+            access_key=self.access_key,
+            secret_key=self.secret_key,
+            account_id=self.merchant_id,
+        )
+
+    def get_amazon_feed_api(self):
+        """
+        Return an instance of feed api
+        """
+        return mws.Feeds(
             access_key=self.access_key,
             secret_key=self.secret_key,
             account_id=self.merchant_id,
