@@ -13,6 +13,7 @@ from decimal import Decimal
 from trytond.model import fields
 from trytond.transaction import Transaction
 from trytond.pool import PoolMeta, Pool
+from trytond.pyson import Eval
 
 
 __all__ = ['Sale']
@@ -28,7 +29,10 @@ class Sale:
         help="This is global and unique ID given to an order across whole"
         "amazon"
         "Warning: Editing this might result in duplicate orders on next"
-        " import"
+        " import",
+        states={
+            'invisible': ~(Eval('channel_type') == 'amazon_mws')
+        }, depends=['channel_type']
     )
 
     @classmethod
@@ -67,9 +71,9 @@ class Sale:
             return sales[0]
 
         amazon_channel = SaleChannel(
-            Transaction().context.get('amazon_channel')
+            Transaction().context['amazon_channel']
         )
-        order_api = amazon_channel.get_order_api()
+        order_api = amazon_channel.get_amazon_order_api()
 
         order_data = order_api.get_order([order_id]).parsed
 
@@ -93,67 +97,35 @@ class Sale:
         Party = Pool().get('party.party')
         Address = Pool().get('party.address')
         SaleChannel = Pool().get('sale.channel')
-        Currency = Pool().get('currency.currency')
-        Uom = Pool().get('product.uom')
 
         amazon_channel = SaleChannel(
-            Transaction().context.get('amazon_channel')
+            Transaction().context['amazon_channel']
         )
-
-        currency, = Currency.search([
-            ('code', '=', order_data['OrderTotal']['CurrencyCode']['value'])
-        ], limit=1)
-
-        # Order lines are returned as dictionary for single record and as list
-        # for mulitple reocrds.
-        # So convert to list if its dictionary
-        if isinstance(line_data, dict):
-            # If its a single line order, then the array will be dict
-            order_items = [line_data]
-        else:
-            # In case of multi line orders, the transaction array will be
-            # a list of dictionaries
-            order_items = line_data
 
         party_values = {
             'name': order_data['BuyerEmail']['value'],
             'email': order_data['BuyerName']['value'],
         }
-        party = Party.create_using_amazon_data(party_values)
+        party = Party.find_or_create_using_amazon_data(party_values)
+
         party.add_phone_using_amazon_data(
             order_data['ShippingAddress']['Phone']['value']
         )
-
         party_invoice_address = party_shipping_address = \
             Address.find_or_create_for_party_using_amazon_data(
                 party, order_data['ShippingAddress']
             )
-        unit, = Uom.search([('name', '=', 'Unit')])
 
-        sale_data = {
-            'reference': order_data['AmazonOrderId']['value'],
-            'sale_date': dateutil.parser.parse(
-                order_data['PurchaseDate']['value']
-            ).date(),
-            'party': party.id,
-            'currency': currency.id,
-            'invoice_address': party_invoice_address.id,
-            'shipment_address': party_shipping_address.id,
-            'amazon_order_id': order_data['AmazonOrderId']['value'],
-            'lines': cls.get_item_line_data_using_amazon_data(order_items),
-            'channel': amazon_channel.id,
-        }
+        sale = cls.get_sale_using_amazon_data(order_data, line_data)
 
-        for order_item in order_items:
-            if order_item['ShippingPrice']['Amount']['value']:
-                sale_data['lines'].append(
-                    cls.get_shipping_line_data_using_amazon_data(order_item)
-                )
+        sale.party = party.id
+        sale.invoice_address = party_invoice_address.id
+        sale.shipment_address = party_shipping_address.id
+        sale.channel = amazon_channel.id
+        sale.save()
 
         # TODO: Handle Discounts
         # TODO: Handle Taxes
-
-        sale, = cls.create([sale_data])
 
         # Assert that the order totals are same
         assert sale.total_amount == Decimal(
@@ -170,7 +142,28 @@ class Sale:
         return sale
 
     @classmethod
-    def get_item_line_data_using_amazon_data(cls, order_items):
+    def get_sale_using_amazon_data(cls, order_data, line_data):
+        """
+        Returns sale for amazon order
+        """
+        Sale = Pool().get('sale.sale')
+        Currency = Pool().get('currency.currency')
+        currency, = Currency.search([
+            ('code', '=', order_data['OrderTotal']['CurrencyCode']['value'])
+        ], limit=1)
+
+        return Sale(
+            reference=order_data['AmazonOrderId']['value'],
+            sale_date=dateutil.parser.parse(
+                order_data['PurchaseDate']['value']
+            ).date(),
+            currency=currency.id,
+            amazon_order_id=order_data['AmazonOrderId']['value'],
+            lines=cls.get_item_line_data_using_amazon_data(line_data)
+        )
+
+    @classmethod
+    def get_item_line_data_using_amazon_data(cls, line_data):
         """
         Make data for an item line from the amazon data.
 
@@ -179,26 +172,43 @@ class Sale:
         """
         Uom = Pool().get('product.uom')
         Product = Pool().get('product.product')
+        SaleLine = Pool().get('sale.line')
 
         unit, = Uom.search([('name', '=', 'Unit')])
 
-        line_data = []
+        # Order lines are returned as dictionary for single record and as list
+        # for mulitple reocrds.
+        # So convert to list if its dictionary
+        if isinstance(line_data, dict):
+            # If its a single line order, then the array will be dict
+            order_items = [line_data]
+        else:
+            # In case of multi line orders, the transaction array will be
+            # a list of dictionaries
+            order_items = line_data
+
+        sale_lines = []
         for order_item in order_items:
-            line_data.append(
-                ('create', [{
-                    'description': order_item['Title']['value'],
-                    'unit_price': Decimal(
+            sale_lines.append(
+                SaleLine(
+                    description=order_item['Title']['value'],
+                    unit_price=Decimal(
                         order_item['ItemPrice']['Amount']['value']
                     ),
-                    'unit': unit.id,
-                    'quantity': Decimal(order_item['QuantityOrdered']['value']),
-                    'product': Product.find_or_create_using_amazon_sku(
+                    unit=unit.id,
+                    quantity=Decimal(order_item['QuantityOrdered']['value']),
+                    product=Product.find_or_create_using_amazon_sku(
                         order_item['SellerSKU']['value'],
                     ).id
-                }])
+                )
             )
 
-        return line_data
+            if order_item['ShippingPrice']['Amount']['value']:
+                sale_lines.append(
+                    cls.get_shipping_line_data_using_amazon_data(order_item)
+                )
+
+        return sale_lines
 
     @classmethod
     def get_shipping_line_data_using_amazon_data(cls, order_item):
@@ -207,20 +217,19 @@ class Sale:
 
         :param order_item: Order Data from amazon
         """
+        SaleLine = Pool().get('sale.line')
         Uom = Pool().get('product.uom')
 
         unit, = Uom.search([('name', '=', 'Unit')])
 
-        return (
-            'create', [{
-                'description': 'eBay Shipping and Handling',
-                'unit_price': Decimal(
-                    order_item['ShippingPrice']['Amount']['value']
-                ),
-                'unit': unit.id,
-                'quantity': Decimal(
-                    order_item['QuantityOrdered']['value']
-                ),  # XXX: Not sure about this if shipping charges must
-                    # be applied to each quantity ordered
-            }]
+        return SaleLine(
+            description='Amazon Shipping and Handling',
+            unit_price=Decimal(
+                order_item['ShippingPrice']['Amount']['value']
+            ),
+            unit=unit.id,
+            quantity=Decimal(
+                order_item['QuantityOrdered']['value']
+            ),  # XXX: Not sure about this if shipping charges must
+                # be applied to each quantity ordered
         )
