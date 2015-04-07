@@ -174,6 +174,60 @@ class TestSale(TestBase):
                     ], count=True), 1
                 )
 
+    def test_0030_create_duplicate_party(self):
+        """
+        Tests duplicate party is created with same amazon email
+        """
+        Party = POOL.get('party.party')
+
+        with Transaction().start(DB_NAME, USER, CONTEXT):
+            self.setup_defaults()
+
+            with Transaction().set_context({
+                'amazon_channel': self.sale_channel.id,
+            }):
+
+                order_data = load_json(
+                    'orders', 'order_list'
+                )['Orders']['Order']
+
+                self.assertFalse(
+                    Party.search([
+                        ('name', '=', order_data['BuyerEmail']['value'])
+                    ])
+                )
+
+                party1 = Party.find_or_create_using_amazon_data({
+                    'name': order_data['BuyerEmail']['value'],
+                    'email': order_data['BuyerName']['value'],
+                })
+
+                self.assertTrue(
+                    Party.search([
+                        ('name', '=', order_data['BuyerEmail']['value'])
+                    ])
+                )
+                self.assertEqual(
+                    Party.search([
+                        ('name', '=', order_data['BuyerEmail']['value'])
+                    ], count=True), 1
+                )
+
+                # Create party with same email again and it wont create
+                # new one
+                party2 = Party.find_or_create_using_amazon_data({
+                    'name': order_data['BuyerEmail']['value'],
+                    'email': order_data['BuyerName']['value'],
+                })
+
+                self.assertEqual(party1, party2)
+
+                self.assertEqual(
+                    Party.search([
+                        ('name', '=', order_data['BuyerEmail']['value'])
+                    ], count=True), 1
+                )
+
 
 def suite():
     """

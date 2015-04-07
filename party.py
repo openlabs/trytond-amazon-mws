@@ -46,6 +46,22 @@ class Party:
         ]
 
     @classmethod
+    def find_or_create_using_amazon_data(cls, amazon_data):
+        """
+        Creates record of customer values sent by amazon
+
+        :param amazon_data: Dictionary of values for customer sent by amazon
+        :return: Active record of record created
+        """
+        parties = cls.search([
+            ('amazon_user_email', '=', amazon_data['email']),
+        ])
+        if parties:
+            return parties[0]
+
+        return cls.create_using_amazon_data(amazon_data)
+
+    @classmethod
     def create_using_amazon_data(cls, amazon_data):
         """
         Creates record of customer values sent by amazon
@@ -53,7 +69,7 @@ class Party:
         :param amazon_data: Dictionary of values for customer sent by amazon
         :return: Active record of record created
         """
-        party, = cls.create([{
+        return cls.create([{
             'name': amazon_data['name'],
             'amazon_user_email': amazon_data['email'],
             'contact_mechanisms': [
@@ -61,9 +77,7 @@ class Party:
                     'email': amazon_data['email']
                 }])
             ]
-        }])
-
-        return party
+        }])[0]
 
     def add_phone_using_amazon_data(self, amazon_phone):
         """
@@ -120,13 +134,12 @@ class Address:
 
         for address in party.addresses:
             if address.is_match_found(amazon_address):
-                break
+                return address
 
         else:
             # Create new address
             amazon_address.save()
-            address = amazon_address
-        return address
+            return amazon_address
 
     @classmethod
     def get_address_from_amazon_data(cls, party, address_data):
