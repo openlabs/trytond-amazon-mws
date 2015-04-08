@@ -13,7 +13,6 @@ from trytond.model import ModelView, fields
 from trytond.transaction import Transaction
 from trytond.wizard import Wizard, StateView, StateTransition, Button
 from trytond.pool import PoolMeta, Pool
-from mws import mws
 
 
 __all__ = [
@@ -103,13 +102,13 @@ class Product:
 
         # if product is not found get the info from amazon and
         # delegate to create_using_amazon_data
-        sale_channel = SaleChannel(
-            Transaction().context.get('sale_channel')
+        amazon_channel = SaleChannel(
+            Transaction().context['amazon_channel']
         )
-        api = sale_channel.get_product_api()
+        api = amazon_channel.get_amazon_product_api()
 
         product_data = api.get_matching_product_for_id(
-            sale_channel.marketplace_id, 'SellerSKU', [sku]
+            amazon_channel.marketplace_id, 'SellerSKU', [sku]
         ).parsed
 
         return cls.create_using_amazon_data(product_data)
@@ -126,19 +125,19 @@ class Product:
         """
         SaleChannel = Pool().get('sale.channel')
 
-        sale_channel = SaleChannel(
-            Transaction().context.get('sale_channel')
+        amazon_channel = SaleChannel(
+            Transaction().context['amazon_channel']
         )
 
         return {
             'name': product_attributes['Title']['value'],
             'list_price': Decimal('0.01'),
             'cost_price': Decimal('0.01'),
-            'default_uom': sale_channel.default_uom.id,
+            'default_uom': amazon_channel.default_uom.id,
             'salable': True,
-            'sale_uom': sale_channel.default_uom.id,
-            'account_expense': sale_channel.default_account_expense.id,
-            'account_revenue': sale_channel.default_account_revenue.id,
+            'sale_uom': amazon_channel.default_uom.id,
+            'account_expense': amazon_channel.default_account_expense.id,
+            'account_revenue': amazon_channel.default_account_revenue.id,
         }
 
     @classmethod
@@ -169,7 +168,7 @@ class Product:
                 'code': product_data['Id']['value'],
                 'description': product_attributes['Title']['value'],
                 'channel_listings': [('create', [{
-                    'channel': Transaction().context.get('sale_channel')
+                    'channel': Transaction().context['amazon_channel']
                 }])]
             }])],
         })
@@ -186,8 +185,8 @@ class Product:
         """
         SaleChannel = Pool().get('sale.channel')
 
-        sale_channel = SaleChannel(
-            Transaction().context['sale_channel']
+        amazon_channel = SaleChannel(
+            Transaction().context['amazon_channel']
         )
 
         NS = "http://www.w3.org/2001/XMLSchema-instance"
@@ -240,7 +239,7 @@ class Product:
         envelope_xml = E.AmazonEnvelope(
             E.Header(
                 E.DocumentVersion('1.01'),
-                E.MerchantIdentifier(sale_channel.merchant_id)
+                E.MerchantIdentifier(amazon_channel.merchant_id)
             ),
             E.MessageType('Product'),
             E.PurgeAndReplace('false'),
@@ -249,22 +248,18 @@ class Product:
 
         envelope_xml.set(location_attribute, 'amznenvelope.xsd')
 
-        feeds_api = mws.Feeds(
-            sale_channel.access_key,
-            sale_channel.secret_key,
-            sale_channel.merchant_id
-        )
+        feeds_api = amazon_channel.get_amazon_feed_api()
 
         response = feeds_api.submit_feed(
             etree.tostring(envelope_xml),
             feed_type='_POST_PRODUCT_DATA_',
-            marketplaceids=[sale_channel.marketplace_id]
+            marketplaceids=[amazon_channel.marketplace_id]
         )
 
         cls.write(products, {
             'channel_listings': [('create', [{
                 'product': product.id,
-                'channel': sale_channel.id,
+                'channel': amazon_channel.id,
             } for product in products])]
         })
 
@@ -278,8 +273,8 @@ class Product:
         """
         SaleChannel = Pool().get('sale.channel')
 
-        sale_channel = SaleChannel(
-            Transaction().context['sale_channel']
+        amazon_channel = SaleChannel(
+            Transaction().context['amazon_channel']
         )
 
         NS = "http://www.w3.org/2001/XMLSchema-instance"
@@ -288,7 +283,9 @@ class Product:
         pricing_xml = []
         for product in products:
 
-            if sale_channel in [ch.channel for ch in product.channel_listings]:
+            if amazon_channel in [
+                ch.channel for ch in product.channel_listings
+            ]:
                 pricing_xml.append(E.Message(
                     E.MessageID(str(product.id)),
                     E.OperationType('Update'),
@@ -297,7 +294,7 @@ class Product:
                         E.StandardPrice(
                             # TODO: Use a pricelist
                             str(product.template.list_price),
-                            currency=sale_channel.company.currency.code
+                            currency=amazon_channel.company.currency.code
                         ),
                     )
                 ))
@@ -305,7 +302,7 @@ class Product:
         envelope_xml = E.AmazonEnvelope(
             E.Header(
                 E.DocumentVersion('1.01'),
-                E.MerchantIdentifier(sale_channel.merchant_id)
+                E.MerchantIdentifier(amazon_channel.merchant_id)
             ),
             E.MessageType('Price'),
             E.PurgeAndReplace('false'),
@@ -314,16 +311,12 @@ class Product:
 
         envelope_xml.set(location_attribute, 'amznenvelope.xsd')
 
-        feeds_api = mws.Feeds(
-            sale_channel.access_key,
-            sale_channel.secret_key,
-            sale_channel.merchant_id
-        )
+        feeds_api = amazon_channel.get_amazon_feed_api()
 
         response = feeds_api.submit_feed(
             etree.tostring(envelope_xml),
             feed_type='_POST_PRODUCT_PRICING_DATA_',
-            marketplaceids=[sale_channel.marketplace_id]
+            marketplaceids=[amazon_channel.marketplace_id]
         )
 
         return response.parsed
@@ -336,8 +329,8 @@ class Product:
         """
         SaleChannel = Pool().get('sale.channel')
 
-        sale_channel = SaleChannel(
-            Transaction().context['sale_channel']
+        amazon_channel = SaleChannel(
+            Transaction().context['amazon_channel']
         )
 
         NS = "http://www.w3.org/2001/XMLSchema-instance"
@@ -347,14 +340,16 @@ class Product:
         for product in products:
 
             with Transaction().set_context({
-                'locations': [sale_channel.warehouse.id]
+                'locations': [amazon_channel.warehouse.id]
             }):
                 quantity = product.quantity
 
             if not quantity:
                 continue
 
-            if sale_channel in [ch.channel for ch in product.channel_listins]:
+            if amazon_channel in [
+                ch.channel for ch in product.channel_listings
+            ]:
                 inventory_xml.append(E.Message(
                     E.MessageID(str(product.id)),
                     E.OperationType('Update'),
@@ -370,7 +365,7 @@ class Product:
         envelope_xml = E.AmazonEnvelope(
             E.Header(
                 E.DocumentVersion('1.01'),
-                E.MerchantIdentifier(sale_channel.merchant_id)
+                E.MerchantIdentifier(amazon_channel.merchant_id)
             ),
             E.MessageType('Inventory'),
             E.PurgeAndReplace('false'),
@@ -379,16 +374,12 @@ class Product:
 
         envelope_xml.set(location_attribute, 'amznenvelope.xsd')
 
-        feeds_api = mws.Feeds(
-            sale_channel.access_key,
-            sale_channel.secret_key,
-            sale_channel.merchant_id
-        )
+        feeds_api = amazon_channel.get_amazon_feed_api()
 
         response = feeds_api.submit_feed(
             etree.tostring(envelope_xml),
             feed_type='_POST_INVENTORY_AVAILABILITY_DATA_',
-            marketplaceids=[sale_channel.marketplace_id]
+            marketplaceids=[amazon_channel.marketplace_id]
         )
 
         return response.parsed
@@ -462,12 +453,12 @@ class ExportCatalog(Wizard):
         Product = Pool().get('product.product')
         SaleChannel = Pool().get('sale.channel')
 
-        sale_channel = SaleChannel(Transaction().context.get('active_id'))
+        amazon_channel = SaleChannel(Transaction().context.get('active_id'))
 
         if not self.start.products:
             return 'end'
 
-        with Transaction().set_context(sale_channel=sale_channel.id):
+        with Transaction().set_context(amazon_channel=amazon_channel.id):
             response = Product.export_to_amazon(self.start.products)
 
         Transaction().set_context({'response': response})
@@ -538,12 +529,12 @@ class ExportCatalogPricing(Wizard):
         Product = Pool().get('product.product')
         SaleChannel = Pool().get('sale.channel')
 
-        sale_channel = SaleChannel(Transaction().context.get('active_id'))
+        amazon_channel = SaleChannel(Transaction().context.get('active_id'))
 
         if not self.start.products:
             return 'end'
 
-        with Transaction().set_context(sale_channel=sale_channel.id):
+        with Transaction().set_context(amazon_channel=amazon_channel.id):
 
             response = Product.export_pricing_to_amazon(self.start.products)
 
@@ -615,12 +606,12 @@ class ExportCatalogInventory(Wizard):
         Product = Pool().get('product.product')
         SaleChannel = Pool().get('sale.channel')
 
-        sale_channel = SaleChannel(Transaction().context.get('active_id'))
+        amazon_channel = SaleChannel(Transaction().context.get('active_id'))
 
         if not self.start.products:
             return 'end'
 
-        with Transaction().set_context(sale_channel=sale_channel.id):
+        with Transaction().set_context(amazon_channel=amazon_channel.id):
             response = Product.export_inventory_to_amazon(self.start.products)
 
         Transaction().set_context({'response': response})

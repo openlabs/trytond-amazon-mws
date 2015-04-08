@@ -79,7 +79,7 @@ class TestProduct(TestBase):
             self.setup_defaults()
 
             with Transaction().set_context(
-                {'sale_channel': self.sale_channel.id}
+                {'amazon_channel': self.sale_channel.id}
             ):
                 self.assertEqual(Product.search([], count=True), 0)
 

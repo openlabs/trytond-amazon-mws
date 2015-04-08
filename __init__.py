@@ -16,8 +16,11 @@ from .product import (
     Product, ExportCatalogStart, ExportCatalog,
     ExportCatalogDone, ExportCatalogPricingStart, ExportCatalogPricing,
     ExportCatalogPricingDone, ExportCatalogInventoryStart,
-    ExportCatalogInventory, ExportCatalogInventoryDone, ProductCode, Template,
+    ExportCatalogInventory, ExportCatalogInventoryDone, ProductCode, Template
 )
+from sale import Sale
+from party import Party, Address
+from country import Subdivision
 
 
 def register():
@@ -37,6 +40,10 @@ def register():
         ExportCatalogInventoryDone,
         CheckServiceStatusView,
         CheckAmazonSettingsView,
+        Sale,
+        Party,
+        Address,
+        Subdivision,
         module='amazon_mws', type_='model'
     )
     Pool.register(
