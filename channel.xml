@@ -34,5 +34,18 @@
             <field name="name">wizard_check_amazon_settings_view_form</field>
         </record>
 
+        <!--Import orders wizard-->
+        <record model="ir.action.wizard" id="import_amazon_orders">
+            <field name="name">Import Amazon Orders</field>
+            <field name="wiz_name">sale.channel.import_amazon_orders</field>
+            <field name="model">sale.channel</field>
+        </record>
+
+        <record model="ir.ui.view" id="import_amazon_orders_view_form">
+            <field name="model">sale.channel.import_amazon_orders.view</field>
+            <field name="type">form</field>
+            <field name="name">wizard_import_orders_view_form</field>
+        </record>
+
     </data>
 </tryton>

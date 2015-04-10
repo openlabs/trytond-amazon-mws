@@ -4,13 +4,14 @@
 
     Initialize module
 
-    :copyright: (c) 2013 by Openlabs Technologies & Consulting (P) Limited
+    :copyright: (c) 2013-2015 by Openlabs Technologies & Consulting (P) Limited
     :license: BSD, see LICENSE for more details.
 """
 from trytond.pool import Pool
-from .channel import (
+from channel import (
     SaleChannel, CheckServiceStatus, CheckServiceStatusView,
-    CheckAmazonSettingsView, CheckAmazonSettings
+    CheckAmazonSettingsView, CheckAmazonSettings, ImportOrdersView,
+    ImportOrders
 )
 from .product import (
     Product, ExportCatalogStart, ExportCatalog,
@@ -40,6 +41,7 @@ def register():
         ExportCatalogInventoryDone,
         CheckServiceStatusView,
         CheckAmazonSettingsView,
+        ImportOrdersView,
         Sale,
         Party,
         Address,
@@ -52,5 +54,6 @@ def register():
         ExportCatalog,
         ExportCatalogPricing,
         ExportCatalogInventory,
+        ImportOrders,
         module='amazon_mws', type_='wizard'
     )

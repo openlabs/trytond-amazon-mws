@@ -5,18 +5,23 @@
     :copyright: (c) 2015 by Openlabs Technologies & Consulting (P) Limited
     :license: BSD, see LICENSE for more details.
 """
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 from mws import mws
+
 from trytond.model import ModelView, fields
-from trytond.wizard import Wizard, StateView, Button
+from trytond.wizard import Wizard, StateView, Button, StateAction
 from trytond.transaction import Transaction
 from trytond.pyson import Eval
 from trytond.pool import Pool, PoolMeta
+from trytond.pyson import PYSONEncoder
 
 __metaclass__ = PoolMeta
 
 __all__ = [
     'SaleChannel', 'CheckServiceStatusView', 'CheckServiceStatus',
-    'CheckAmazonSettingsView', 'CheckAmazonSettings'
+    'CheckAmazonSettingsView', 'CheckAmazonSettings', 'ImportOrdersView',
+    'ImportOrders',
 ]
 
 AMAZON_MWS_STATES = {
@@ -62,6 +67,16 @@ class SaleChannel:
             ('company', '=', Eval('company')),
         ], states=AMAZON_MWS_STATES, depends=['source', 'company']
     ))
+    last_order_import_time = fields.DateTime(
+        'Last Order Import Time', states=AMAZON_MWS_STATES, depends=['source']
+    )
+
+    @staticmethod
+    def default_last_order_import_time():
+        """
+        Sets default last order import time
+        """
+        return datetime.utcnow() - relativedelta(days=30)
 
     @classmethod
     def get_source(cls):
@@ -92,6 +107,11 @@ class SaleChannel:
         cls._buttons.update({
             'check_service_status': {},
             'check_amazon_settings': {},
+            'import_orders_button': {},
+        })
+
+        cls._error_messages.update({
+            'orders_not_found': 'No orders seems to be placed after %s'
         })
 
     def get_mws_api(self):
@@ -157,6 +177,55 @@ class SaleChannel:
         Checks account settings configured
 
         :param accounts: Active record list of sale channels
+        """
+        pass
+
+    def import_orders(self):
+        """
+        Import Orders for current channel
+        """
+        Sale = Pool().get('sale.sale')
+
+        order_api = self.get_amazon_order_api()
+
+        sales = []
+        last_import_time = self.last_order_import_time.isoformat()
+
+        response = order_api.list_orders(
+            marketplaceids=[self.marketplace_id],
+            created_after=last_import_time,
+            orderstatus=('Unshipped', 'PartiallyShipped', 'Shipped')
+        ).parsed
+
+        if not response.get('Orders'):
+            self.raise_user_error('orders_not_found', last_import_time)
+
+        # Orders are returned as dictionary for single order and as
+        # list for multiple orders.
+        # Convert to list if dictionary is returned
+        if isinstance(response['Orders']['Order'], dict):
+            orders = [response['Orders']['Order']]
+        else:
+            orders = response['Orders']['Order']
+
+        with Transaction().set_context({'amazon_channel': self.id}):
+            for order_data in orders:
+                sales.append(
+                    Sale.find_or_create_using_amazon_id(
+                        order_data['AmazonOrderId']['value']
+                    )
+                )
+
+        # Update last order import time for channel
+        self.write([self], {'last_order_import_time': datetime.utcnow()})
+
+        return sales
+
+    @classmethod
+    @ModelView.button_action('amazon_mws.import_amazon_orders')
+    def import_orders_button(cls, channels):
+        """
+        Import orders for current account
         """
         pass
 
@@ -279,3 +348,59 @@ class CheckAmazonSettings(Wizard):
             res['status'] = "Something went wrong. Please check account " + \
                 "settings again"
         return res
+
+
+class ImportOrdersView(ModelView):
+    "Import Orders View"
+    __name__ = 'sale.channel.import_amazon_orders.view'
+
+    message = fields.Text("Message", readonly=True)
+
+
+class ImportOrders(Wizard):
+    """
+    Import Orders Wizard
+
+    Import orders for the current MWS account
+    """
+    __name__ = 'sale.channel.import_amazon_orders'
+
+    start = StateView(
+        'sale.channel.import_amazon_orders.view',
+        'amazon_mws.import_amazon_orders_view_form',
+        [
+            Button('Cancel', 'end', 'tryton-cancel'),
+            Button('Continue', 'import_', 'tryton-ok', default=True),
+        ]
+    )
+
+    import_ = StateAction('sale.act_sale_form')
+
+    def default_start(self, data):
+        """
+        Sets default data for wizard
+        """
+        return {
+            'message':
+                'This wizard will import orders for this seller '
+                'account. It imports orders updated only after Last Order '
+                'Import Time.'
+        }
+
+    def do_import_(self, action):
+        """
+        Import orders and open records created
+        """
+        SaleChannel = Pool().get('sale.channel')
+
+        channel = SaleChannel(Transaction().context.get('active_id'))
+
+        sales = channel.import_orders()
+
+        action['pyson_domain'] = PYSONEncoder().encode([
+            ('id', 'in', map(int, sales))
+        ])
+        return action, {}
+
+    def transition_import_(self):
+        return 'end'
