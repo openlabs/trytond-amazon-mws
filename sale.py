@@ -71,8 +71,10 @@ class Sale:
             return sales[0]
 
         amazon_channel = SaleChannel(
-            Transaction().context['amazon_channel']
+            Transaction().context['current_channel']
         )
+        assert amazon_channel.source == 'amazon_mws'
+
         order_api = amazon_channel.get_amazon_order_api()
 
         order_data = order_api.get_order([order_id]).parsed
@@ -99,8 +101,9 @@ class Sale:
         SaleChannel = Pool().get('sale.channel')
 
         amazon_channel = SaleChannel(
-            Transaction().context['amazon_channel']
+            Transaction().context['current_channel']
         )
+        assert amazon_channel.source == 'amazon_mws'
 
         party_values = {
             'name': order_data['BuyerEmail']['value'],

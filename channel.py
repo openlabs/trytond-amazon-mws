@@ -208,7 +208,7 @@ class SaleChannel:
         else:
             orders = response['Orders']['Order']
 
-        with Transaction().set_context({'amazon_channel': self.id}):
+        with Transaction().set_context({'current_channel': self.id}):
             for order_data in orders:
                 sales.append(
                     Sale.find_or_create_using_amazon_id(

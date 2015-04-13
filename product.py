@@ -103,8 +103,10 @@ class Product:
         # if product is not found get the info from amazon and
         # delegate to create_using_amazon_data
         amazon_channel = SaleChannel(
-            Transaction().context['amazon_channel']
+            Transaction().context['current_channel']
         )
+        assert amazon_channel.source == 'amazon_mws'
+
         api = amazon_channel.get_amazon_product_api()
 
         product_data = api.get_matching_product_for_id(
@@ -126,8 +128,9 @@ class Product:
         SaleChannel = Pool().get('sale.channel')
 
         amazon_channel = SaleChannel(
-            Transaction().context['amazon_channel']
+            Transaction().context['current_channel']
         )
+        assert amazon_channel.source == 'amazon_mws'
 
         return {
             'name': product_attributes['Title']['value'],
@@ -168,7 +171,8 @@ class Product:
                 'code': product_data['Id']['value'],
                 'description': product_attributes['Title']['value'],
                 'channel_listings': [('create', [{
-                    'channel': Transaction().context['amazon_channel']
+                    # TODO: Set product identifier
+                    'channel': Transaction().context['current_channel']
                 }])]
             }])],
         })
@@ -176,6 +180,33 @@ class Product:
         product_template, = Template.create([product_values])
 
         return product_template.products[0]
+
+    @classmethod
+    def _get_amazon_envelop(cls, message_type, xml_list):
+        """
+        Returns amazon envelop for xml given
+        """
+        SaleChannel = Pool().get('sale.channel')
+
+        amazon_channel = SaleChannel(
+            Transaction().context['amazon_channel']
+        )
+
+        NS = "http://www.w3.org/2001/XMLSchema-instance"
+        location_attribute = '{%s}noNamespaceSchemaLocation' % NS
+
+        envelope_xml = E.AmazonEnvelope(
+            E.Header(
+                E.DocumentVersion('1.01'),
+                E.MerchantIdentifier(amazon_channel.merchant_id)
+            ),
+            E.MessageType(message_type),
+            E.PurgeAndReplace('false'),
+            *(xml for xml in xml_list)
+        )
+        envelope_xml.set(location_attribute, 'amznenvelope.xsd')
+
+        return envelope_xml
 
     @classmethod
     def export_to_amazon(cls, products):
@@ -186,11 +217,9 @@ class Product:
         SaleChannel = Pool().get('sale.channel')
 
         amazon_channel = SaleChannel(
-            Transaction().context['amazon_channel']
+            Transaction().context['current_channel']
         )
-
-        NS = "http://www.w3.org/2001/XMLSchema-instance"
-        location_attribute = '{%s}noNamespaceSchemaLocation' % NS
+        assert amazon_channel.source == 'amazon_mws'
 
         products_xml = []
         for product in products:
@@ -236,17 +265,7 @@ class Product:
                 )
             ))
 
-        envelope_xml = E.AmazonEnvelope(
-            E.Header(
-                E.DocumentVersion('1.01'),
-                E.MerchantIdentifier(amazon_channel.merchant_id)
-            ),
-            E.MessageType('Product'),
-            E.PurgeAndReplace('false'),
-            *(product_xml for product_xml in products_xml)
-        )
-
-        envelope_xml.set(location_attribute, 'amznenvelope.xsd')
+        envelope_xml = cls._get_amazon_envelop('Product', products_xml)
 
         feeds_api = amazon_channel.get_amazon_feed_api()
 
@@ -274,11 +293,9 @@ class Product:
         SaleChannel = Pool().get('sale.channel')
 
         amazon_channel = SaleChannel(
-            Transaction().context['amazon_channel']
+            Transaction().context['current_channel']
         )
-
-        NS = "http://www.w3.org/2001/XMLSchema-instance"
-        location_attribute = '{%s}noNamespaceSchemaLocation' % NS
+        assert amazon_channel.source == 'amazon_mws'
 
         pricing_xml = []
         for product in products:
@@ -299,17 +316,7 @@ class Product:
                     )
                 ))
 
-        envelope_xml = E.AmazonEnvelope(
-            E.Header(
-                E.DocumentVersion('1.01'),
-                E.MerchantIdentifier(amazon_channel.merchant_id)
-            ),
-            E.MessageType('Price'),
-            E.PurgeAndReplace('false'),
-            *(price_xml for price_xml in pricing_xml)
-        )
-
-        envelope_xml.set(location_attribute, 'amznenvelope.xsd')
+        envelope_xml = cls._get_amazon_envelop('Price', pricing_xml)
 
         feeds_api = amazon_channel.get_amazon_feed_api()
 
@@ -330,11 +337,9 @@ class Product:
         SaleChannel = Pool().get('sale.channel')
 
         amazon_channel = SaleChannel(
-            Transaction().context['amazon_channel']
+            Transaction().context['current_channel']
         )
-
-        NS = "http://www.w3.org/2001/XMLSchema-instance"
-        location_attribute = '{%s}noNamespaceSchemaLocation' % NS
+        assert amazon_channel.source == 'amazon_mws'
 
         inventory_xml = []
         for product in products:
@@ -362,17 +367,7 @@ class Product:
                     )
                 ))
 
-        envelope_xml = E.AmazonEnvelope(
-            E.Header(
-                E.DocumentVersion('1.01'),
-                E.MerchantIdentifier(amazon_channel.merchant_id)
-            ),
-            E.MessageType('Inventory'),
-            E.PurgeAndReplace('false'),
-            *(inv_xml for inv_xml in inventory_xml)
-        )
-
-        envelope_xml.set(location_attribute, 'amznenvelope.xsd')
+        envelope_xml = cls._get_amazon_envelop('Inventory', inventory_xml)
 
         feeds_api = amazon_channel.get_amazon_feed_api()
 
@@ -458,7 +453,7 @@ class ExportCatalog(Wizard):
         if not self.start.products:
             return 'end'
 
-        with Transaction().set_context(amazon_channel=amazon_channel.id):
+        with Transaction().set_context(current_channel=amazon_channel.id):
             response = Product.export_to_amazon(self.start.products)
 
         Transaction().set_context({'response': response})
@@ -534,7 +529,7 @@ class ExportCatalogPricing(Wizard):
         if not self.start.products:
             return 'end'
 
-        with Transaction().set_context(amazon_channel=amazon_channel.id):
+        with Transaction().set_context(current_channel=amazon_channel.id):
 
             response = Product.export_pricing_to_amazon(self.start.products)
 
@@ -611,7 +606,7 @@ class ExportCatalogInventory(Wizard):
         if not self.start.products:
             return 'end'
 
-        with Transaction().set_context(amazon_channel=amazon_channel.id):
+        with Transaction().set_context(current_channel=amazon_channel.id):
             response = Product.export_inventory_to_amazon(self.start.products)
 
         Transaction().set_context({'response': response})

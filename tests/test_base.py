@@ -253,8 +253,6 @@ class TestBase(unittest.TestCase):
             'payment_term': self.payment_term,
         }])
 
-        self.User.set_preferences({'current_channel': self.sale_channel.id})
-
         model_field, = self.ModelField.search([
             ('name', '=', 'account_revenue'),
             ('model.model', '=', 'product.template'),
