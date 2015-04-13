@@ -103,8 +103,10 @@ class Product:
         # if product is not found get the info from amazon and
         # delegate to create_using_amazon_data
         amazon_channel = SaleChannel(
-            Transaction().context['amazon_channel']
+            Transaction().context['current_channel']
         )
+        assert amazon_channel.source == 'amazon_mws'
+
         api = amazon_channel.get_amazon_product_api()
 
         product_data = api.get_matching_product_for_id(
@@ -126,8 +128,9 @@ class Product:
         SaleChannel = Pool().get('sale.channel')
 
         amazon_channel = SaleChannel(
-            Transaction().context['amazon_channel']
+            Transaction().context['current_channel']
         )
+        assert amazon_channel.source == 'amazon_mws'
 
         return {
             'name': product_attributes['Title']['value'],
@@ -168,7 +171,8 @@ class Product:
                 'code': product_data['Id']['value'],
                 'description': product_attributes['Title']['value'],
                 'channel_listings': [('create', [{
-                    'channel': Transaction().context['amazon_channel']
+                    # TODO: Set product identifier
+                    'channel': Transaction().context['current_channel']
                 }])]
             }])],
         })
@@ -213,8 +217,9 @@ class Product:
         SaleChannel = Pool().get('sale.channel')
 
         amazon_channel = SaleChannel(
-            Transaction().context['amazon_channel']
+            Transaction().context['current_channel']
         )
+        assert amazon_channel.source == 'amazon_mws'
 
         products_xml = []
         for product in products:
@@ -288,8 +293,9 @@ class Product:
         SaleChannel = Pool().get('sale.channel')
 
         amazon_channel = SaleChannel(
-            Transaction().context['amazon_channel']
+            Transaction().context['current_channel']
         )
+        assert amazon_channel.source == 'amazon_mws'
 
         pricing_xml = []
         for product in products:
@@ -331,8 +337,9 @@ class Product:
         SaleChannel = Pool().get('sale.channel')
 
         amazon_channel = SaleChannel(
-            Transaction().context['amazon_channel']
+            Transaction().context['current_channel']
         )
+        assert amazon_channel.source == 'amazon_mws'
 
         inventory_xml = []
         for product in products:
@@ -446,7 +453,7 @@ class ExportCatalog(Wizard):
         if not self.start.products:
             return 'end'
 
-        with Transaction().set_context(amazon_channel=amazon_channel.id):
+        with Transaction().set_context(current_channel=amazon_channel.id):
             response = Product.export_to_amazon(self.start.products)
 
         Transaction().set_context({'response': response})
@@ -522,7 +529,7 @@ class ExportCatalogPricing(Wizard):
         if not self.start.products:
             return 'end'
 
-        with Transaction().set_context(amazon_channel=amazon_channel.id):
+        with Transaction().set_context(current_channel=amazon_channel.id):
 
             response = Product.export_pricing_to_amazon(self.start.products)
 
@@ -599,7 +606,7 @@ class ExportCatalogInventory(Wizard):
         if not self.start.products:
             return 'end'
 
-        with Transaction().set_context(amazon_channel=amazon_channel.id):
+        with Transaction().set_context(current_channel=amazon_channel.id):
             response = Product.export_inventory_to_amazon(self.start.products)
 
         Transaction().set_context({'response': response})

@@ -43,7 +43,7 @@ class TestSale(TestBase):
             self.setup_defaults()
 
             with Transaction().set_context({
-                'amazon_channel': self.sale_channel.id,
+                'current_channel': self.sale_channel.id,
             }):
 
                 orders = Sale.search([])
@@ -127,7 +127,7 @@ class TestSale(TestBase):
             self.setup_defaults()
 
             with Transaction().set_context({
-                'amazon_channel': self.sale_channel.id,
+                'current_channel': self.sale_channel.id,
             }):
 
                 order_data = load_json(
@@ -184,7 +184,7 @@ class TestSale(TestBase):
             self.setup_defaults()
 
             with Transaction().set_context({
-                'amazon_channel': self.sale_channel.id,
+                'current_channel': self.sale_channel.id,
             }):
 
                 order_data = load_json(
