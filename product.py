@@ -178,6 +178,33 @@ class Product:
         return product_template.products[0]
 
     @classmethod
+    def _get_amazon_envelop(cls, message_type, xml_list):
+        """
+        Returns amazon envelop for xml given
+        """
+        SaleChannel = Pool().get('sale.channel')
+
+        amazon_channel = SaleChannel(
+            Transaction().context['amazon_channel']
+        )
+
+        NS = "http://www.w3.org/2001/XMLSchema-instance"
+        location_attribute = '{%s}noNamespaceSchemaLocation' % NS
+
+        envelope_xml = E.AmazonEnvelope(
+            E.Header(
+                E.DocumentVersion('1.01'),
+                E.MerchantIdentifier(amazon_channel.merchant_id)
+            ),
+            E.MessageType(message_type),
+            E.PurgeAndReplace('false'),
+            *(xml for xml in xml_list)
+        )
+        envelope_xml.set(location_attribute, 'amznenvelope.xsd')
+
+        return envelope_xml
+
+    @classmethod
     def export_to_amazon(cls, products):
         """Export the products to the Amazon account in context
 
@@ -188,9 +215,6 @@ class Product:
         amazon_channel = SaleChannel(
             Transaction().context['amazon_channel']
         )
-
-        NS = "http://www.w3.org/2001/XMLSchema-instance"
-        location_attribute = '{%s}noNamespaceSchemaLocation' % NS
 
         products_xml = []
         for product in products:
@@ -236,17 +260,7 @@ class Product:
                 )
             ))
 
-        envelope_xml = E.AmazonEnvelope(
-            E.Header(
-                E.DocumentVersion('1.01'),
-                E.MerchantIdentifier(amazon_channel.merchant_id)
-            ),
-            E.MessageType('Product'),
-            E.PurgeAndReplace('false'),
-            *(product_xml for product_xml in products_xml)
-        )
-
-        envelope_xml.set(location_attribute, 'amznenvelope.xsd')
+        envelope_xml = cls._get_amazon_envelop('Product', products_xml)
 
         feeds_api = amazon_channel.get_amazon_feed_api()
 
@@ -277,9 +291,6 @@ class Product:
             Transaction().context['amazon_channel']
         )
 
-        NS = "http://www.w3.org/2001/XMLSchema-instance"
-        location_attribute = '{%s}noNamespaceSchemaLocation' % NS
-
         pricing_xml = []
         for product in products:
 
@@ -299,17 +310,7 @@ class Product:
                     )
                 ))
 
-        envelope_xml = E.AmazonEnvelope(
-            E.Header(
-                E.DocumentVersion('1.01'),
-                E.MerchantIdentifier(amazon_channel.merchant_id)
-            ),
-            E.MessageType('Price'),
-            E.PurgeAndReplace('false'),
-            *(price_xml for price_xml in pricing_xml)
-        )
-
-        envelope_xml.set(location_attribute, 'amznenvelope.xsd')
+        envelope_xml = cls._get_amazon_envelop('Price', pricing_xml)
 
         feeds_api = amazon_channel.get_amazon_feed_api()
 
@@ -332,9 +333,6 @@ class Product:
         amazon_channel = SaleChannel(
             Transaction().context['amazon_channel']
         )
-
-        NS = "http://www.w3.org/2001/XMLSchema-instance"
-        location_attribute = '{%s}noNamespaceSchemaLocation' % NS
 
         inventory_xml = []
         for product in products:
@@ -362,17 +360,7 @@ class Product:
                     )
                 ))
 
-        envelope_xml = E.AmazonEnvelope(
-            E.Header(
-                E.DocumentVersion('1.01'),
-                E.MerchantIdentifier(amazon_channel.merchant_id)
-            ),
-            E.MessageType('Inventory'),
-            E.PurgeAndReplace('false'),
-            *(inv_xml for inv_xml in inventory_xml)
-        )
-
-        envelope_xml.set(location_attribute, 'amznenvelope.xsd')
+        envelope_xml = cls._get_amazon_envelop('Inventory', inventory_xml)
 
         feeds_api = amazon_channel.get_amazon_feed_api()
 
