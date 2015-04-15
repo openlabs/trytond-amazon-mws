@@ -11,8 +11,13 @@
             <field name="access_key"/>
             <label name="secret_key"/>
             <field name="secret_key"/>
+            <newline/>
+            <separator id="import_export_time" string="Import / Export Time" colspan="2"/>
+            <newline/>
             <label name="last_order_import_time"/>
             <field name="last_order_import_time"/>
+            <label name="last_product_export_time"/>
+            <field name="last_product_export_time"/>
             <newline/>
             <separator id="mws_account_defaults" string="MWS Defaults" colspan="2"/>
             <newline/>

@@ -5,5 +5,4 @@ this repository contains the full copyright notices and license terms. -->
     <image name="tryton-dialog-information" xexpand="0" xfill="0"/>
     <label string="This wizard will export the products selected to amazon for listing."
            id="information" yalign="0.0" xalign="0.0" xexpand="1"/>
-    <field name="products" colspan="4"/>
 </form>

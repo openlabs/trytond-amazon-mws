@@ -6,8 +6,6 @@
     :license: BSD, see LICENSE for more details.
 '''
 from decimal import Decimal
-from lxml import etree
-from lxml.builder import E
 
 from trytond.model import ModelView, fields
 from trytond.transaction import Transaction
@@ -51,21 +49,6 @@ class Product:
     gtin = fields.Function(fields.Many2One(
         'product.product.code', 'GTIN'
     ), 'get_codes')
-
-    @classmethod
-    def __setup__(cls):
-        """
-        Setup the class before adding to pool
-        """
-        super(Product, cls).__setup__()
-        cls._error_messages.update({
-            "missing_product_codes": (
-                'Product "%(product)s" misses Amazon Product Identifiers'
-            ),
-            "missing_product_code": (
-                'Product "%(product)s" misses Product Code'
-            )
-        })
 
     @classmethod
     def get_codes(cls, products, names):
@@ -181,204 +164,6 @@ class Product:
 
         return product_template.products[0]
 
-    @classmethod
-    def _get_amazon_envelop(cls, message_type, xml_list):
-        """
-        Returns amazon envelop for xml given
-        """
-        SaleChannel = Pool().get('sale.channel')
-
-        amazon_channel = SaleChannel(
-            Transaction().context['amazon_channel']
-        )
-
-        NS = "http://www.w3.org/2001/XMLSchema-instance"
-        location_attribute = '{%s}noNamespaceSchemaLocation' % NS
-
-        envelope_xml = E.AmazonEnvelope(
-            E.Header(
-                E.DocumentVersion('1.01'),
-                E.MerchantIdentifier(amazon_channel.merchant_id)
-            ),
-            E.MessageType(message_type),
-            E.PurgeAndReplace('false'),
-            *(xml for xml in xml_list)
-        )
-        envelope_xml.set(location_attribute, 'amznenvelope.xsd')
-
-        return envelope_xml
-
-    @classmethod
-    def export_to_amazon(cls, products):
-        """Export the products to the Amazon account in context
-
-        :param products: List of active records of products
-        """
-        SaleChannel = Pool().get('sale.channel')
-
-        amazon_channel = SaleChannel(
-            Transaction().context['current_channel']
-        )
-        assert amazon_channel.source == 'amazon_mws'
-
-        products_xml = []
-        for product in products:
-            if not product.code:
-                cls.raise_user_error(
-                    'missing_product_code', {
-                        'product': product.template.name
-                    }
-                )
-            if not product.codes:
-                cls.raise_user_error(
-                    'missing_product_codes', {
-                        'product': product.template.name
-                    }
-                )
-            # Get the product's code to be set as standard ID to amazon
-            product_standard_id = (
-                product.asin or product.ean or product.upc or product.isbn
-                or product.gtin
-            )
-            products_xml.append(E.Message(
-                E.MessageID(str(product.id)),
-                E.OperationType('Update'),
-                E.Product(
-                    E.SKU(product.code),
-                    E.StandardProductID(
-                        E.Type(product_standard_id.code_type.upper()),
-                        E.Value(product_standard_id.code),
-                    ),
-                    E.DescriptionData(
-                        E.Title(product.template.name),
-                        E.Description(product.description),
-                    ),
-                    # Amazon needs this information so as to place the product
-                    # under a category.
-                    # FIXME: Either we need to create all that inside our
-                    # system or figure out a way to get all that via API
-                    E.ProductData(
-                        E.Miscellaneous(
-                            E.ProductType('Misc_Other'),
-                        ),
-                    ),
-                )
-            ))
-
-        envelope_xml = cls._get_amazon_envelop('Product', products_xml)
-
-        feeds_api = amazon_channel.get_amazon_feed_api()
-
-        response = feeds_api.submit_feed(
-            etree.tostring(envelope_xml),
-            feed_type='_POST_PRODUCT_DATA_',
-            marketplaceids=[amazon_channel.marketplace_id]
-        )
-
-        cls.write(products, {
-            'channel_listings': [('create', [{
-                'product': product.id,
-                'channel': amazon_channel.id,
-            } for product in products])]
-        })
-
-        return response.parsed
-
-    @classmethod
-    def export_pricing_to_amazon(cls, products):
-        """Export prices of the products to the Amazon account in context
-
-        :param products: List of active records of products
-        """
-        SaleChannel = Pool().get('sale.channel')
-
-        amazon_channel = SaleChannel(
-            Transaction().context['current_channel']
-        )
-        assert amazon_channel.source == 'amazon_mws'
-
-        pricing_xml = []
-        for product in products:
-
-            if amazon_channel in [
-                ch.channel for ch in product.channel_listings
-            ]:
-                pricing_xml.append(E.Message(
-                    E.MessageID(str(product.id)),
-                    E.OperationType('Update'),
-                    E.Price(
-                        E.SKU(product.code),
-                        E.StandardPrice(
-                            # TODO: Use a pricelist
-                            str(product.template.list_price),
-                            currency=amazon_channel.company.currency.code
-                        ),
-                    )
-                ))
-
-        envelope_xml = cls._get_amazon_envelop('Price', pricing_xml)
-
-        feeds_api = amazon_channel.get_amazon_feed_api()
-
-        response = feeds_api.submit_feed(
-            etree.tostring(envelope_xml),
-            feed_type='_POST_PRODUCT_PRICING_DATA_',
-            marketplaceids=[amazon_channel.marketplace_id]
-        )
-
-        return response.parsed
-
-    @classmethod
-    def export_inventory_to_amazon(cls, products):
-        """Export inventory of the products to the Amazon account in context
-
-        :param products: List of active records of products
-        """
-        SaleChannel = Pool().get('sale.channel')
-
-        amazon_channel = SaleChannel(
-            Transaction().context['current_channel']
-        )
-        assert amazon_channel.source == 'amazon_mws'
-
-        inventory_xml = []
-        for product in products:
-
-            with Transaction().set_context({
-                'locations': [amazon_channel.warehouse.id]
-            }):
-                quantity = product.quantity
-
-            if not quantity:
-                continue
-
-            if amazon_channel in [
-                ch.channel for ch in product.channel_listings
-            ]:
-                inventory_xml.append(E.Message(
-                    E.MessageID(str(product.id)),
-                    E.OperationType('Update'),
-                    E.Inventory(
-                        E.SKU(product.code),
-                        E.Quantity(str(round(quantity))),
-                        E.FulfillmentLatency(
-                            str(product.template.delivery_time)
-                        ),
-                    )
-                ))
-
-        envelope_xml = cls._get_amazon_envelop('Inventory', inventory_xml)
-
-        feeds_api = amazon_channel.get_amazon_feed_api()
-
-        response = feeds_api.submit_feed(
-            etree.tostring(envelope_xml),
-            feed_type='_POST_INVENTORY_AVAILABILITY_DATA_',
-            marketplaceids=[amazon_channel.marketplace_id]
-        )
-
-        return response.parsed
-
 
 class ProductCode:
     "Amazon Product Identifier"
@@ -401,14 +186,6 @@ class ProductCode:
 class ExportCatalogStart(ModelView):
     'Export Catalog to Amazon View'
     __name__ = 'amazon.export_catalog.start'
-
-    products = fields.Many2Many(
-        'product.product', None, None, 'Products', required=True,
-        domain=[
-            ('codes', 'not in', []),
-            ('code', '!=', None),
-        ],
-    )
 
 
 class ExportCatalogDone(ModelView):
@@ -445,16 +222,11 @@ class ExportCatalog(Wizard):
         """
         Export the products selected to this amazon account
         """
-        Product = Pool().get('product.product')
         SaleChannel = Pool().get('sale.channel')
 
         amazon_channel = SaleChannel(Transaction().context.get('active_id'))
 
-        if not self.start.products:
-            return 'end'
-
-        with Transaction().set_context(current_channel=amazon_channel.id):
-            response = Product.export_to_amazon(self.start.products)
+        response = amazon_channel.export_catalog_to_amazon()
 
         Transaction().set_context({'response': response})
 
@@ -476,15 +248,6 @@ class ExportCatalog(Wizard):
 class ExportCatalogPricingStart(ModelView):
     'Export Catalog Pricing to Amazon View'
     __name__ = 'amazon.export_catalog_pricing.start'
-
-    products = fields.Many2Many(
-        'product.product', None, None, 'Products', required=True,
-        domain=[
-            ('codes', 'not in', []),
-            ('code', '!=', None),
-            ('channel_listings', 'not in', []),
-        ],
-    )
 
 
 class ExportCatalogPricingDone(ModelView):
@@ -521,17 +284,11 @@ class ExportCatalogPricing(Wizard):
         """
         Export the prices for products selected to this amazon account
         """
-        Product = Pool().get('product.product')
         SaleChannel = Pool().get('sale.channel')
 
         amazon_channel = SaleChannel(Transaction().context.get('active_id'))
 
-        if not self.start.products:
-            return 'end'
-
-        with Transaction().set_context(current_channel=amazon_channel.id):
-
-            response = Product.export_pricing_to_amazon(self.start.products)
+        response = amazon_channel.export_pricing_to_amazon()
 
         Transaction().set_context({'response': response})
 
@@ -553,15 +310,6 @@ class ExportCatalogPricing(Wizard):
 class ExportCatalogInventoryStart(ModelView):
     'Export Catalog Inventory to Amazon View'
     __name__ = 'amazon.export_catalog_inventory.start'
-
-    products = fields.Many2Many(
-        'product.product', None, None, 'Products', required=True,
-        domain=[
-            ('codes', 'not in', []),
-            ('code', '!=', None),
-            ('channel_listings', 'not in', []),
-        ],
-    )
 
 
 class ExportCatalogInventoryDone(ModelView):
@@ -598,16 +346,11 @@ class ExportCatalogInventory(Wizard):
         """
         Export the prices for products selected to this amazon account
         """
-        Product = Pool().get('product.product')
         SaleChannel = Pool().get('sale.channel')
 
         amazon_channel = SaleChannel(Transaction().context.get('active_id'))
 
-        if not self.start.products:
-            return 'end'
-
-        with Transaction().set_context(current_channel=amazon_channel.id):
-            response = Product.export_inventory_to_amazon(self.start.products)
+        response = amazon_channel.export_inventory_to_amazon()
 
         Transaction().set_context({'response': response})
 
