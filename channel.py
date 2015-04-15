@@ -128,7 +128,7 @@ class SaleChannel:
             "missing_product_code": (
                 'Product "%(product)s" misses Product Code'
             ),
-            'missing_settings': 'Amazon Settings Missing!'
+            'invalid_channel': 'Channel does not belong to Amazon.'
         })
 
     def get_mws_api(self):
@@ -266,6 +266,30 @@ class SaleChannel:
 
         return envelope_xml
 
+    @classmethod
+    def export_to_amazon_using_cron(cls, channels):
+        """
+        Cron method to export product catalog to amazon
+        """
+        for channel in channels:
+            channel.export_catalog_to_amazon(silent=True)
+
+    @classmethod
+    def export_prices_to_amazon_using_cron(cls, channels):
+        """
+        Cron method to export product prices to amazon
+        """
+        for channel in channels:
+            channel.export_pricing_to_amazon(silent=True)
+
+    @classmethod
+    def export_inventory_to_amazon_using_cron(cls, channels):
+        """
+        Cron method to export product inventory to amazon
+        """
+        for channel in channels:
+            channel.export_inventory_to_amazon(silent=True)
+
     def export_catalog_to_amazon(self, silent=False):
         """
         Export the products to the Amazon account in context
@@ -275,7 +299,7 @@ class SaleChannel:
         if self.source != 'amazon_mws':
             if silent:
                 return
-            self.raise_user_error('missing_settings')
+            self.raise_user_error('invalid_channel')
 
         domain = [
             ('template.export_to_amazon', '=', True),
@@ -371,12 +395,12 @@ class SaleChannel:
         if self.source != 'amazon_mws':
             if silent:
                 return
-            self.raise_user_error('missing_settings')
+            self.raise_user_error('invalid_channel')
 
         products = Product.search([
             ('code', '!=', None),
             ('codes', 'not in', []),
-            ('channel_listings', 'not in', []),
+            ('channel_listings.channel', '=', self.id),
         ])
 
         pricing_xml = []
@@ -419,12 +443,12 @@ class SaleChannel:
         if self.source != 'amazon_mws':
             if silent:
                 return
-            self.raise_user_error('missing_settings')
+            self.raise_user_error('invalid_channel')
 
         products = Product.search([
             ('code', '!=', None),
             ('codes', 'not in', []),
-            ('channel_listings', 'not in', []),
+            ('channel_listings.channel', '=', self.id),
         ])
 
         inventory_xml = []
