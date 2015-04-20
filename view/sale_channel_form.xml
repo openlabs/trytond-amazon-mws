@@ -19,14 +19,6 @@
             <label name="last_amazon_product_export_time"/>
             <field name="last_amazon_product_export_time"/>
             <newline/>
-            <separator id="mws_account_defaults" string="MWS Defaults" colspan="2"/>
-            <newline/>
-            <label name="default_account_revenue"/>
-            <field name="default_account_revenue"/>
-            <label name="default_account_expense"/>
-            <field name="default_account_expense"/>
-            <label name="default_uom"/>
-            <field name="default_uom"/>
             <group id="check_amaon_settings" col="3" colspan="6"
                     states="{'invisible': Not(Eval('source') == 'amazon_mws')}">
                 <button string="Check Amazon MWS Service Status" name="check_service_status"/>

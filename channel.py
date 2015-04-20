@@ -51,24 +51,6 @@ class SaleChannel:
         "Secret Key", states=AMAZON_MWS_STATES, depends=['source']
     )
 
-    default_uom = fields.Many2One(
-        'product.uom', 'Default Product UOM',
-        states=AMAZON_MWS_STATES, depends=['source']
-    )
-    default_account_expense = fields.Property(fields.Many2One(
-        'account.account', 'Account Expense', domain=[
-            ('kind', '=', 'expense'),
-            ('company', '=', Eval('company')),
-        ], states=AMAZON_MWS_STATES, depends=['company', 'source'],
-    ))
-
-    #: Used to set revenue account while creating products.
-    default_account_revenue = fields.Property(fields.Many2One(
-        'account.account', 'Account Revenue', domain=[
-            ('kind', '=', 'revenue'),
-            ('company', '=', Eval('company')),
-        ], states=AMAZON_MWS_STATES, depends=['source', 'company']
-    ))
     last_amazon_order_import_time = fields.DateTime(
         'Last Amazon Order Import Time', states={
             'invisible': ~(Eval('source') == 'amazon_mws')
