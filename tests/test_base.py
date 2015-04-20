@@ -236,10 +236,10 @@ class TestBase(unittest.TestCase):
 
         self.sale_channel, = self.SaleChannel.create([{
             'name': 'Amazon MWS Account',
-            'merchant_id': '1234',
-            'marketplace_id': '3456',
-            'access_key': 'AWS1',
-            'secret_key': 'S013',
+            'amazon_merchant_id': '1234',
+            'amazon_marketplace_id': '3456',
+            'amazon_access_key': 'AWS1',
+            'amazon_secret_key': 'S013',
             'warehouse': warehouse.id,
             'company': self.company.id,
             'source': 'amazon_mws',

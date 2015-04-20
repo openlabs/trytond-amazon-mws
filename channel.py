@@ -38,16 +38,16 @@ class SaleChannel:
 
     # These are the credentials that you receive when you register a seller
     # account with Amazon MWS
-    merchant_id = fields.Char(
+    amazon_merchant_id = fields.Char(
         "Merchant ID", states=AMAZON_MWS_STATES, depends=['source']
     )
-    marketplace_id = fields.Char(
+    amazon_marketplace_id = fields.Char(
         "MarketPlace ID", states=AMAZON_MWS_STATES, depends=['source']
     )
-    access_key = fields.Char(
+    amazon_access_key = fields.Char(
         "Access Key", states=AMAZON_MWS_STATES, depends=['source']
     )
-    secret_key = fields.Char(
+    amazon_secret_key = fields.Char(
         "Secret Key", states=AMAZON_MWS_STATES, depends=['source']
     )
 
@@ -69,20 +69,20 @@ class SaleChannel:
             ('company', '=', Eval('company')),
         ], states=AMAZON_MWS_STATES, depends=['source', 'company']
     ))
-    last_order_import_time = fields.DateTime(
-        'Last Order Import Time', states={
+    last_amazon_order_import_time = fields.DateTime(
+        'Last Amazon Order Import Time', states={
             'invisible': ~(Eval('source') == 'amazon_mws')
         }, depends=['source']
     )
 
-    last_product_export_time = fields.DateTime(
-        'Last Product Export Time', states={
+    last_amazon_product_export_time = fields.DateTime(
+        'Last Amazon Product Export Time', states={
             'invisible': ~(Eval('source') == 'amazon_mws')
         }, depends=['source']
     )
 
     @staticmethod
-    def default_last_order_import_time():
+    def default_last_amazon_order_import_time():
         """
         Sets default last order import time
         """
@@ -138,9 +138,9 @@ class SaleChannel:
         :return: mws api instance
         """
         return mws.MWS(
-            access_key=self.access_key,
-            secret_key=self.secret_key,
-            account_id=self.merchant_id,
+            access_key=self.amazon_access_key,
+            secret_key=self.amazon_secret_key,
+            account_id=self.amazon_merchant_id,
         )
 
     def get_amazon_order_api(self):
@@ -150,9 +150,9 @@ class SaleChannel:
         :return: order api instance
         """
         return mws.Orders(
-            access_key=self.access_key,
-            secret_key=self.secret_key,
-            account_id=self.merchant_id,
+            access_key=self.amazon_access_key,
+            secret_key=self.amazon_secret_key,
+            account_id=self.amazon_merchant_id,
         )
 
     def get_amazon_product_api(self):
@@ -162,9 +162,9 @@ class SaleChannel:
         :return: Product API instance
         """
         return mws.Products(
-            access_key=self.access_key,
-            secret_key=self.secret_key,
-            account_id=self.merchant_id,
+            access_key=self.amazon_access_key,
+            secret_key=self.amazon_secret_key,
+            account_id=self.amazon_merchant_id,
         )
 
     def get_amazon_feed_api(self):
@@ -172,9 +172,9 @@ class SaleChannel:
         Return an instance of feed api
         """
         return mws.Feeds(
-            access_key=self.access_key,
-            secret_key=self.secret_key,
-            account_id=self.merchant_id,
+            access_key=self.amazon_access_key,
+            secret_key=self.amazon_secret_key,
+            account_id=self.amazon_merchant_id,
         )
 
     @classmethod
@@ -206,10 +206,10 @@ class SaleChannel:
         order_api = self.get_amazon_order_api()
 
         sales = []
-        last_import_time = self.last_order_import_time.isoformat()
+        last_import_time = self.last_amazon_order_import_time.isoformat()
 
         response = order_api.list_orders(
-            marketplaceids=[self.marketplace_id],
+            marketplaceids=[self.amazon_marketplace_id],
             created_after=last_import_time,
             orderstatus=('Unshipped', 'PartiallyShipped', 'Shipped')
         ).parsed
@@ -234,7 +234,7 @@ class SaleChannel:
                 )
 
         # Update last order import time for channel
-        self.write([self], {'last_order_import_time': datetime.utcnow()})
+        self.write([self], {'last_amazon_order_import_time': datetime.utcnow()})
 
         return sales
 
@@ -256,7 +256,7 @@ class SaleChannel:
         envelope_xml = E.AmazonEnvelope(
             E.Header(
                 E.DocumentVersion('1.01'),
-                E.MerchantIdentifier(self.merchant_id)
+                E.MerchantIdentifier(self.amazon_merchant_id)
             ),
             E.MessageType(message_type),
             E.PurgeAndReplace('false'),
@@ -307,9 +307,9 @@ class SaleChannel:
             ('codes', 'not in', []),
         ]
 
-        if self.last_product_export_time:
+        if self.last_amazon_product_export_time:
             domain.append(
-                ('write_date', '>=', self.last_product_export_time)
+                ('write_date', '>=', self.last_amazon_product_export_time)
             )
 
         products = Product.search(domain)
@@ -369,11 +369,13 @@ class SaleChannel:
         response = feeds_api.submit_feed(
             etree.tostring(envelope_xml),
             feed_type='_POST_PRODUCT_DATA_',
-            marketplaceids=[self.marketplace_id]
+            marketplaceids=[self.amazon_marketplace_id]
         )
 
         # Update last product export time for channel
-        self.write([self], {'last_product_export_time': datetime.utcnow()})
+        self.write([self], {
+            'last_amazon_product_export_time': datetime.utcnow()
+        })
 
         Product.write(products, {
             'channel_listings': [
@@ -428,7 +430,7 @@ class SaleChannel:
         response = feeds_api.submit_feed(
             etree.tostring(envelope_xml),
             feed_type='_POST_PRODUCT_PRICING_DATA_',
-            marketplaceids=[self.marketplace_id]
+            marketplaceids=[self.amazon_marketplace_id]
         )
 
         return response.parsed
@@ -481,7 +483,7 @@ class SaleChannel:
         response = feeds_api.submit_feed(
             etree.tostring(envelope_xml),
             feed_type='_POST_INVENTORY_AVAILABILITY_DATA_',
-            marketplaceids=[self.marketplace_id]
+            marketplaceids=[self.amazon_marketplace_id]
         )
 
         return response.parsed
@@ -592,9 +594,9 @@ class CheckAmazonSettings(Wizard):
 
         res = {}
         api = mws.Feeds(
-            access_key=channel.access_key,
-            secret_key=channel.secret_key,
-            account_id=channel.merchant_id,
+            access_key=channel.amazon_access_key,
+            secret_key=channel.amazon_secret_key,
+            account_id=channel.amazon_merchant_id,
         )
 
         try:
