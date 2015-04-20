@@ -8,6 +8,8 @@
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from mws import mws
+from lxml import etree
+from lxml.builder import E
 
 from trytond.model import ModelView, fields
 from trytond.wizard import Wizard, StateView, Button, StateAction
@@ -68,7 +70,15 @@ class SaleChannel:
         ], states=AMAZON_MWS_STATES, depends=['source', 'company']
     ))
     last_order_import_time = fields.DateTime(
-        'Last Order Import Time', states=AMAZON_MWS_STATES, depends=['source']
+        'Last Order Import Time', states={
+            'invisible': ~(Eval('source') == 'amazon_mws')
+        }, depends=['source']
+    )
+
+    last_product_export_time = fields.DateTime(
+        'Last Product Export Time', states={
+            'invisible': ~(Eval('source') == 'amazon_mws')
+        }, depends=['source']
     )
 
     @staticmethod
@@ -111,7 +121,14 @@ class SaleChannel:
         })
 
         cls._error_messages.update({
-            'orders_not_found': 'No orders seems to be placed after %s'
+            'orders_not_found': 'No orders seems to be placed after %s',
+            "missing_product_codes": (
+                'Product "%(product)s" misses Amazon Product Identifiers'
+            ),
+            "missing_product_code": (
+                'Product "%(product)s" misses Product Code'
+            ),
+            'invalid_channel': 'Channel does not belong to Amazon.'
         })
 
     def get_mws_api(self):
@@ -228,6 +245,246 @@ class SaleChannel:
         Import orders for current account
         """
         pass
+
+    def _get_amazon_envelop(self, message_type, xml_list):
+        """
+        Returns amazon envelop for xml given
+        """
+        NS = "http://www.w3.org/2001/XMLSchema-instance"
+        location_attribute = '{%s}noNamespaceSchemaLocation' % NS
+
+        envelope_xml = E.AmazonEnvelope(
+            E.Header(
+                E.DocumentVersion('1.01'),
+                E.MerchantIdentifier(self.merchant_id)
+            ),
+            E.MessageType(message_type),
+            E.PurgeAndReplace('false'),
+            *(xml for xml in xml_list)
+        )
+        envelope_xml.set(location_attribute, 'amznenvelope.xsd')
+
+        return envelope_xml
+
+    @classmethod
+    def export_to_amazon_using_cron(cls, channels):
+        """
+        Cron method to export product catalog to amazon
+        """
+        for channel in channels:
+            channel.export_catalog_to_amazon(silent=True)
+
+    @classmethod
+    def export_prices_to_amazon_using_cron(cls, channels):
+        """
+        Cron method to export product prices to amazon
+        """
+        for channel in channels:
+            channel.export_pricing_to_amazon(silent=True)
+
+    @classmethod
+    def export_inventory_to_amazon_using_cron(cls, channels):
+        """
+        Cron method to export product inventory to amazon
+        """
+        for channel in channels:
+            channel.export_inventory_to_amazon(silent=True)
+
+    def export_catalog_to_amazon(self, silent=False):
+        """
+        Export the products to the Amazon account in context
+        """
+        Product = Pool().get('product.product')
+
+        if self.source != 'amazon_mws':
+            if silent:
+                return
+            self.raise_user_error('invalid_channel')
+
+        domain = [
+            ('template.export_to_amazon', '=', True),
+            ('code', '!=', None),
+            ('codes', 'not in', []),
+        ]
+
+        if self.last_product_export_time:
+            domain.append(
+                ('write_date', '>=', self.last_product_export_time)
+            )
+
+        products = Product.search(domain)
+
+        products_xml = []
+        for product in products:
+            if not product.code:
+                if silent:
+                    return
+                self.raise_user_error(
+                    'missing_product_code', {
+                        'product': product.template.name
+                    }
+                )
+            if not product.codes:
+                if silent:
+                    return
+                self.raise_user_error(
+                    'missing_product_codes', {
+                        'product': product.template.name
+                    }
+                )
+            # Get the product's code to be set as standard ID to amazon
+            product_standard_id = (
+                product.asin or product.ean or product.upc or product.isbn
+                or product.gtin
+            )
+            products_xml.append(E.Message(
+                E.MessageID(str(product.id)),
+                E.OperationType('Update'),
+                E.Product(
+                    E.SKU(product.code),
+                    E.StandardProductID(
+                        E.Type(product_standard_id.code_type.upper()),
+                        E.Value(product_standard_id.code),
+                    ),
+                    E.DescriptionData(
+                        E.Title(product.template.name),
+                        E.Description(product.description),
+                    ),
+                    # Amazon needs this information so as to place the product
+                    # under a category.
+                    # FIXME: Either we need to create all that inside our
+                    # system or figure out a way to get all that via API
+                    E.ProductData(
+                        E.Miscellaneous(
+                            E.ProductType('Misc_Other'),
+                        ),
+                    ),
+                )
+            ))
+
+        envelope_xml = self._get_amazon_envelop('Product', products_xml)
+
+        feeds_api = self.get_amazon_feed_api()
+
+        response = feeds_api.submit_feed(
+            etree.tostring(envelope_xml),
+            feed_type='_POST_PRODUCT_DATA_',
+            marketplaceids=[self.marketplace_id]
+        )
+
+        # Update last product export time for channel
+        self.write([self], {'last_product_export_time': datetime.utcnow()})
+
+        Product.write(products, {
+            'channel_listings': [
+                ('create', [{
+                    'channel': self.id,
+                }])
+            ]
+        })
+
+        return response.parsed
+
+    def export_pricing_to_amazon(self, silent=False):
+        """Export prices of the products to the Amazon account in context
+
+        :param products: List of active records of products
+        """
+        Product = Pool().get('product.product')
+
+        if self.source != 'amazon_mws':
+            if silent:
+                return
+            self.raise_user_error('invalid_channel')
+
+        products = Product.search([
+            ('code', '!=', None),
+            ('codes', 'not in', []),
+            ('channel_listings.channel', '=', self.id),
+        ])
+
+        pricing_xml = []
+        for product in products:
+            if self in [
+                ch.channel for ch in product.channel_listings
+            ]:
+                pricing_xml.append(E.Message(
+                    E.MessageID(str(product.id)),
+                    E.OperationType('Update'),
+                    E.Price(
+                        E.SKU(product.code),
+                        E.StandardPrice(
+                            # TODO: Use a pricelist
+                            str(product.template.list_price),
+                            currency=self.company.currency.code
+                        ),
+                    )
+                ))
+
+        envelope_xml = self._get_amazon_envelop('Price', pricing_xml)
+
+        feeds_api = self.get_amazon_feed_api()
+
+        response = feeds_api.submit_feed(
+            etree.tostring(envelope_xml),
+            feed_type='_POST_PRODUCT_PRICING_DATA_',
+            marketplaceids=[self.marketplace_id]
+        )
+
+        return response.parsed
+
+    def export_inventory_to_amazon(self, silent=False):
+        """Export inventory of the products to the Amazon account in context
+
+        :param products: List of active records of products
+        """
+        Product = Pool().get('product.product')
+
+        if self.source != 'amazon_mws':
+            if silent:
+                return
+            self.raise_user_error('invalid_channel')
+
+        products = Product.search([
+            ('code', '!=', None),
+            ('codes', 'not in', []),
+            ('channel_listings.channel', '=', self.id),
+        ])
+
+        inventory_xml = []
+        for product in products:
+            with Transaction().set_context({'locations': [self.warehouse.id]}):
+                quantity = product.quantity
+
+            if not quantity:
+                continue
+
+            if self in [
+                ch.channel for ch in product.channel_listings
+            ]:
+                inventory_xml.append(E.Message(
+                    E.MessageID(str(product.id)),
+                    E.OperationType('Update'),
+                    E.Inventory(
+                        E.SKU(product.code),
+                        E.Quantity(str(round(quantity))),
+                        E.FulfillmentLatency(
+                            str(product.template.delivery_time)
+                        ),
+                    )
+                ))
+
+        envelope_xml = self._get_amazon_envelop('Inventory', inventory_xml)
+
+        feeds_api = self.get_amazon_feed_api()
+
+        response = feeds_api.submit_feed(
+            etree.tostring(envelope_xml),
+            feed_type='_POST_INVENTORY_AVAILABILITY_DATA_',
+            marketplaceids=[self.marketplace_id]
+        )
+
+        return response.parsed
 
 
 class CheckServiceStatusView(ModelView):
