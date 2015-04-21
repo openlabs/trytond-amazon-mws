@@ -93,7 +93,7 @@ class Product:
         api = amazon_channel.get_amazon_product_api()
 
         product_data = api.get_matching_product_for_id(
-            amazon_channel.marketplace_id, 'SellerSKU', [sku]
+            amazon_channel.amazon_marketplace_id, 'SellerSKU', [sku]
         ).parsed
 
         return cls.create_using_amazon_data(product_data)

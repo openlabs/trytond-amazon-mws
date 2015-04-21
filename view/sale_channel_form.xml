@@ -3,30 +3,22 @@
     <xpath expr="//notebook" position="inside">
       <page id="mws_account_details" string="Amazon Marketplace"
                 states="{'invisible': Not(Eval('source') == 'amazon_mws')}">
-            <label name="merchant_id" />
-            <field name="merchant_id" />
-            <label name="marketplace_id" />
-            <field name="marketplace_id" />
-            <label name="access_key"/>
-            <field name="access_key"/>
-            <label name="secret_key"/>
-            <field name="secret_key"/>
+            <label name="amazon_merchant_id" />
+            <field name="amazon_merchant_id" />
+            <label name="amazon_marketplace_id" />
+            <field name="amazon_marketplace_id" />
+            <label name="amazon_access_key"/>
+            <field name="amazon_access_key"/>
+            <label name="amazon_secret_key"/>
+            <field name="amazon_secret_key"/>
             <newline/>
             <separator id="import_export_time" string="Import / Export Time" colspan="2"/>
             <newline/>
-            <label name="last_order_import_time"/>
-            <field name="last_order_import_time"/>
-            <label name="last_product_export_time"/>
-            <field name="last_product_export_time"/>
+            <label name="last_amazon_order_import_time"/>
+            <field name="last_amazon_order_import_time"/>
+            <label name="last_amazon_product_export_time"/>
+            <field name="last_amazon_product_export_time"/>
             <newline/>
-            <separator id="mws_account_defaults" string="MWS Defaults" colspan="2"/>
-            <newline/>
-            <label name="default_account_revenue"/>
-            <field name="default_account_revenue"/>
-            <label name="default_account_expense"/>
-            <field name="default_account_expense"/>
-            <label name="default_uom"/>
-            <field name="default_uom"/>
             <group id="check_amaon_settings" col="3" colspan="6"
                     states="{'invisible': Not(Eval('source') == 'amazon_mws')}">
                 <button string="Check Amazon MWS Service Status" name="check_service_status"/>
