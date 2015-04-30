@@ -21,9 +21,9 @@ from trytond.pyson import PYSONEncoder
 __metaclass__ = PoolMeta
 
 __all__ = [
-    'SaleChannel', 'CheckServiceStatusView', 'CheckServiceStatus',
-    'CheckAmazonSettingsView', 'CheckAmazonSettings', 'ImportOrdersView',
-    'ImportOrders',
+    'SaleChannel', 'CheckAmazonServiceStatusView', 'CheckAmazonServiceStatus',
+    'CheckAmazonSettingsView', 'CheckAmazonSettings', 'ImportAmazonOrdersView',
+    'ImportAmazonOrders',
 ]
 
 AMAZON_MWS_STATES = {
@@ -97,9 +97,9 @@ class SaleChannel:
         """
         super(SaleChannel, cls).__setup__()
         cls._buttons.update({
-            'check_service_status': {},
+            'check_amazon_service_status': {},
             'check_amazon_settings': {},
-            'import_orders_button': {},
+            'import_amazon_orders_button': {},
         })
 
         cls._error_messages.update({
@@ -160,8 +160,8 @@ class SaleChannel:
         )
 
     @classmethod
-    @ModelView.button_action('amazon_mws.check_service_status')
-    def check_service_status(cls, channels):
+    @ModelView.button_action('amazon_mws.check_amazon_service_status')
+    def check_amazon_service_status(cls, channels):
         """
         Check GREEN, GREEN_I, YELLOW or RED status
 
@@ -179,7 +179,7 @@ class SaleChannel:
         """
         pass
 
-    def import_orders(self):
+    def import_amazon_orders(self):
         """
         Import Orders for current channel
         """
@@ -222,7 +222,7 @@ class SaleChannel:
 
     @classmethod
     @ModelView.button_action('amazon_mws.import_amazon_orders')
-    def import_orders_button(cls, channels):
+    def import_amazon_orders_button(cls, channels):
         """
         Import orders for current account
         """
@@ -471,25 +471,25 @@ class SaleChannel:
         return response.parsed
 
 
-class CheckServiceStatusView(ModelView):
+class CheckAmazonServiceStatusView(ModelView):
     "Check Service Status View"
-    __name__ = 'amazon.mws.check_service_status.view'
+    __name__ = 'channel.check_amazon_service_status.view'
 
     status = fields.Char('Status', readonly=True)
     message = fields.Text("Message", readonly=True)
 
 
-class CheckServiceStatus(Wizard):
+class CheckAmazonServiceStatus(Wizard):
     """
     Check Service Status Wizard
 
     Check service status for the current MWS account
     """
-    __name__ = 'amazon.mws.check_service_status'
+    __name__ = 'channel.check_amazon_service_status'
 
     start = StateView(
-        'amazon.mws.check_service_status.view',
-        'amazon_mws.check_service_status_view_form',
+        'channel.check_amazon_service_status.view',
+        'amazon_mws.check_amazon_service_status_view_form',
         [
             Button('OK', 'end', 'tryton-ok'),
         ]
@@ -543,7 +543,7 @@ class CheckServiceStatus(Wizard):
 
 class CheckAmazonSettingsView(ModelView):
     "Check Amazon Settings View"
-    __name__ = 'amazon.mws.check_amazon_settings.view'
+    __name__ = 'channel.check_amazon_settings.view'
 
     status = fields.Text('Status', readonly=True)
 
@@ -554,10 +554,10 @@ class CheckAmazonSettings(Wizard):
 
     Check amazon settings configured for the current MWS account
     """
-    __name__ = 'amazon.mws.check_amazon_settings'
+    __name__ = 'channel.check_amazon_settings'
 
     start = StateView(
-        'amazon.mws.check_amazon_settings.view',
+        'channel.check_amazon_settings.view',
         'amazon_mws.check_amazon_settings_view_form',
         [
             Button('OK', 'end', 'tryton-ok'),
@@ -591,23 +591,23 @@ class CheckAmazonSettings(Wizard):
         return res
 
 
-class ImportOrdersView(ModelView):
+class ImportAmazonOrdersView(ModelView):
     "Import Orders View"
-    __name__ = 'sale.channel.import_amazon_orders.view'
+    __name__ = 'channel.import_amazon_orders.view'
 
     message = fields.Text("Message", readonly=True)
 
 
-class ImportOrders(Wizard):
+class ImportAmazonOrders(Wizard):
     """
-    Import Orders Wizard
+    Import Amazon Orders Wizard
 
-    Import orders for the current MWS account
+    Import orders for the current amazon channel
     """
-    __name__ = 'sale.channel.import_amazon_orders'
+    __name__ = 'channel.import_amazon_orders'
 
     start = StateView(
-        'sale.channel.import_amazon_orders.view',
+        'channel.import_amazon_orders.view',
         'amazon_mws.import_amazon_orders_view_form',
         [
             Button('Cancel', 'end', 'tryton-cancel'),
@@ -636,7 +636,7 @@ class ImportOrders(Wizard):
 
         channel = SaleChannel(Transaction().context.get('active_id'))
 
-        sales = channel.import_orders()
+        sales = channel.import_amazon_orders()
 
         action['pyson_domain'] = PYSONEncoder().encode([
             ('id', 'in', map(int, sales))

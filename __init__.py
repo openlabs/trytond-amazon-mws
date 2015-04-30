@@ -9,15 +9,15 @@
 """
 from trytond.pool import Pool
 from channel import (
-    SaleChannel, CheckServiceStatus, CheckServiceStatusView,
-    CheckAmazonSettingsView, CheckAmazonSettings, ImportOrdersView,
-    ImportOrders
+    SaleChannel, CheckAmazonServiceStatus, CheckAmazonServiceStatusView,
+    CheckAmazonSettingsView, CheckAmazonSettings, ImportAmazonOrdersView,
+    ImportAmazonOrders
 )
-from .product import (
-    Product, ExportCatalogStart, ExportCatalog,
-    ExportCatalogDone, ExportCatalogPricingStart, ExportCatalogPricing,
-    ExportCatalogPricingDone, ExportCatalogInventoryStart,
-    ExportCatalogInventory, ExportCatalogInventoryDone, ProductCode, Template
+from product import (
+    Product, ExportAmazonCatalogStart, ExportAmazonCatalog,
+    ExportAmazonCatalogDone, ExportAmazonPricingStart, ExportAmazonPricing,
+    ExportAmazonPricingDone, ExportAmazonInventoryStart,
+    ExportAmazonInventory, ExportAmazonInventoryDone, ProductCode, Template
 )
 from sale import Sale
 from party import Party, Address
@@ -33,15 +33,15 @@ def register():
         Product,
         ProductCode,
         Template,
-        ExportCatalogStart,
-        ExportCatalogDone,
-        ExportCatalogPricingStart,
-        ExportCatalogPricingDone,
-        ExportCatalogInventoryStart,
-        ExportCatalogInventoryDone,
-        CheckServiceStatusView,
+        ExportAmazonCatalogStart,
+        ExportAmazonCatalogDone,
+        ExportAmazonPricingStart,
+        ExportAmazonPricingDone,
+        ExportAmazonInventoryStart,
+        ExportAmazonInventoryDone,
+        CheckAmazonServiceStatusView,
         CheckAmazonSettingsView,
-        ImportOrdersView,
+        ImportAmazonOrdersView,
         Sale,
         Party,
         Address,
@@ -49,11 +49,11 @@ def register():
         module='amazon_mws', type_='model'
     )
     Pool.register(
-        CheckServiceStatus,
+        CheckAmazonServiceStatus,
         CheckAmazonSettings,
-        ExportCatalog,
-        ExportCatalogPricing,
-        ExportCatalogInventory,
-        ImportOrders,
+        ExportAmazonCatalog,
+        ExportAmazonPricing,
+        ExportAmazonInventory,
+        ImportAmazonOrders,
         module='amazon_mws', type_='wizard'
     )
