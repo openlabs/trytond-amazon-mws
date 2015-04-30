@@ -179,6 +179,16 @@ class SaleChannel:
         """
         pass
 
+    @classmethod
+    def import_amazon_orders_using_cron(cls):
+        """
+        Cron method to import amazon orders
+        """
+        channels = cls.search([('source', '=', 'amazon_mws')])
+
+        for channel in channels:
+            channel.import_amazon_orders()
+
     def import_amazon_orders(self):
         """
         Import Orders for current channel
