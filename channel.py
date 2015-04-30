@@ -113,6 +113,13 @@ class SaleChannel:
             'invalid_channel': 'Channel does not belong to Amazon.'
         })
 
+    def validate_amazon_channel(self):
+        """
+        Check if channel belongs to amazon mws
+        """
+        if self.source != 'amazon_mws':
+            self.raise_user_error('invalid_channel')
+
     def get_mws_api(self):
         """
         Create an instance of mws api
@@ -195,6 +202,8 @@ class SaleChannel:
         """
         Sale = Pool().get('sale.sale')
 
+        self.validate_amazon_channel()
+
         order_api = self.get_amazon_order_api()
 
         sales = []
@@ -259,26 +268,32 @@ class SaleChannel:
         return envelope_xml
 
     @classmethod
-    def export_to_amazon_using_cron(cls, channels):
+    def export_to_amazon_using_cron(cls):
         """
         Cron method to export product catalog to amazon
         """
+        channels = cls.search([('source', '=', 'amazon_mws')])
+
         for channel in channels:
             channel.export_catalog_to_amazon(silent=True)
 
     @classmethod
-    def export_prices_to_amazon_using_cron(cls, channels):
+    def export_prices_to_amazon_using_cron(cls):
         """
         Cron method to export product prices to amazon
         """
+        channels = cls.search([('source', '=', 'amazon_mws')])
+
         for channel in channels:
             channel.export_pricing_to_amazon(silent=True)
 
     @classmethod
-    def export_inventory_to_amazon_using_cron(cls, channels):
+    def export_inventory_to_amazon_using_cron(cls):
         """
         Cron method to export product inventory to amazon
         """
+        channels = cls.search([('source', '=', 'amazon_mws')])
+
         for channel in channels:
             channel.export_inventory_to_amazon(silent=True)
 
@@ -288,10 +303,7 @@ class SaleChannel:
         """
         Product = Pool().get('product.product')
 
-        if self.source != 'amazon_mws':
-            if silent:
-                return
-            self.raise_user_error('invalid_channel')
+        self.validate_amazon_channel()
 
         domain = [
             ('template.export_to_amazon', '=', True),
@@ -386,10 +398,7 @@ class SaleChannel:
         """
         Product = Pool().get('product.product')
 
-        if self.source != 'amazon_mws':
-            if silent:
-                return
-            self.raise_user_error('invalid_channel')
+        self.validate_amazon_channel()
 
         products = Product.search([
             ('code', '!=', None),
@@ -434,10 +443,7 @@ class SaleChannel:
         """
         Product = Pool().get('product.product')
 
-        if self.source != 'amazon_mws':
-            if silent:
-                return
-            self.raise_user_error('invalid_channel')
+        self.validate_amazon_channel()
 
         products = Product.search([
             ('code', '!=', None),
@@ -584,12 +590,10 @@ class CheckAmazonSettings(Wizard):
 
         channel = SaleChannel(Transaction().context.get('active_id'))
 
+        channel.validate_amazon_channel()
+
         res = {}
-        api = mws.Feeds(
-            access_key=channel.amazon_access_key,
-            secret_key=channel.amazon_secret_key,
-            account_id=channel.amazon_merchant_id,
-        )
+        api = channel.get_amazon_feed_api()
 
         try:
             api.get_feed_submission_count().parsed
@@ -645,6 +649,7 @@ class ImportAmazonOrders(Wizard):
         SaleChannel = Pool().get('sale.channel')
 
         channel = SaleChannel(Transaction().context.get('active_id'))
+        channel.validate_amazon_channel()
 
         sales = channel.import_amazon_orders()
 
