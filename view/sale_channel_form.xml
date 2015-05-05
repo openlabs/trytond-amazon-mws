@@ -10,7 +10,7 @@
             <label name="amazon_access_key"/>
             <field name="amazon_access_key"/>
             <label name="amazon_secret_key"/>
-            <field name="amazon_secret_key"/>
+            <field name="amazon_secret_key" widget="password"/>
             <newline/>
             <separator id="import_export_time" string="Import / Export Time" colspan="2"/>
             <newline/>
