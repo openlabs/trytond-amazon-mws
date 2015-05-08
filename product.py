@@ -14,10 +14,11 @@ from trytond.pool import PoolMeta, Pool
 
 
 __all__ = [
-    'Product', 'ExportCatalogStart', 'ExportCatalog',
-    'ExportCatalogDone', 'ExportCatalogPricingStart', 'ExportCatalogPricing',
-    'ExportCatalogPricingDone', 'ExportCatalogInventoryStart',
-    'ExportCatalogInventory', 'ExportCatalogInventoryDone', 'ProductCode',
+    'Product', 'ExportAmazonCatalogStart', 'ExportAmazonCatalog',
+    'ExportAmazonCatalogDone', 'ExportAmazonPricingStart',
+    'ExportAmazonPricing', 'ExportAmazonPricingDone',
+    'ExportAmazonInventoryStart', 'ExportAmazonInventory',
+    'ExportAmazonInventoryDone', 'ProductCode',
     'Template',
 ]
 __metaclass__ = PoolMeta
@@ -183,12 +184,12 @@ class ProductCode:
         ])
 
 
-class ExportCatalogStart(ModelView):
+class ExportAmazonCatalogStart(ModelView):
     'Export Catalog to Amazon View'
     __name__ = 'amazon.export_catalog.start'
 
 
-class ExportCatalogDone(ModelView):
+class ExportAmazonCatalogDone(ModelView):
     'Export Catalog to Amazon Done View'
     __name__ = 'amazon.export_catalog.done'
 
@@ -196,7 +197,7 @@ class ExportCatalogDone(ModelView):
     submission_id = fields.Char('Submission ID', readonly=True)
 
 
-class ExportCatalog(Wizard):
+class ExportAmazonCatalog(Wizard):
     '''Export catalog to Amazon
 
     Export the products selected to this amazon account
@@ -245,12 +246,12 @@ class ExportCatalog(Wizard):
         }
 
 
-class ExportCatalogPricingStart(ModelView):
+class ExportAmazonPricingStart(ModelView):
     'Export Catalog Pricing to Amazon View'
     __name__ = 'amazon.export_catalog_pricing.start'
 
 
-class ExportCatalogPricingDone(ModelView):
+class ExportAmazonPricingDone(ModelView):
     'Export Catalog Pricing to Amazon Done View'
     __name__ = 'amazon.export_catalog_pricing.done'
 
@@ -258,7 +259,7 @@ class ExportCatalogPricingDone(ModelView):
     submission_id = fields.Char('Submission ID', readonly=True)
 
 
-class ExportCatalogPricing(Wizard):
+class ExportAmazonPricing(Wizard):
     '''Export catalog pricing to Amazon
 
     Export the prices products selected to this amazon account
@@ -307,12 +308,12 @@ class ExportCatalogPricing(Wizard):
         }
 
 
-class ExportCatalogInventoryStart(ModelView):
+class ExportAmazonInventoryStart(ModelView):
     'Export Catalog Inventory to Amazon View'
     __name__ = 'amazon.export_catalog_inventory.start'
 
 
-class ExportCatalogInventoryDone(ModelView):
+class ExportAmazonInventoryDone(ModelView):
     'Export Catalog Inventory to Amazon Done View'
     __name__ = 'amazon.export_catalog_inventory.done'
 
@@ -320,7 +321,7 @@ class ExportCatalogInventoryDone(ModelView):
     submission_id = fields.Char('Submission ID', readonly=True)
 
 
-class ExportCatalogInventory(Wizard):
+class ExportAmazonInventory(Wizard):
     '''Export catalog inventory to Amazon
 
     Export the prices products selected to this amazon account

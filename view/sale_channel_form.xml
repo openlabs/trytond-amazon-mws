@@ -10,7 +10,7 @@
             <label name="amazon_access_key"/>
             <field name="amazon_access_key"/>
             <label name="amazon_secret_key"/>
-            <field name="amazon_secret_key"/>
+            <field name="amazon_secret_key" widget="password"/>
             <newline/>
             <separator id="import_export_time" string="Import / Export Time" colspan="2"/>
             <newline/>
@@ -19,11 +19,11 @@
             <label name="last_amazon_product_export_time"/>
             <field name="last_amazon_product_export_time"/>
             <newline/>
-            <group id="check_amaon_settings" col="3" colspan="6"
+            <group id="check_amazon_settings" col="3" colspan="6"
                     states="{'invisible': Not(Eval('source') == 'amazon_mws')}">
-                <button string="Check Amazon MWS Service Status" name="check_service_status"/>
+                <button string="Check Amazon MWS Service Status" name="check_amazon_service_status"/>
                 <button string="Check Amazon MWS Account Settings" name="check_amazon_settings"/>
-                <button string="Import Amazon MWS Orders" name="import_orders_button"/>
+                <button string="Import Amazon MWS Orders" name="import_amazon_orders_button"/>
             </group>
         </page>
     </xpath>
