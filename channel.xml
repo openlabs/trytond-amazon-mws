@@ -9,14 +9,14 @@
           </record>
 
         <!--Check Service Status Wizard-->
-        <record model="ir.action.wizard" id="check_service_status">
-            <field name="name">Check Service Status</field>
-            <field name="wiz_name">amazon.mws.check_service_status</field>
+        <record model="ir.action.wizard" id="check_amazon_service_status">
+            <field name="name">Check Amazon Service Status</field>
+            <field name="wiz_name">channel.check_amazon_service_status</field>
             <field name="model">sale.channel</field>
         </record>
 
-        <record model="ir.ui.view" id="check_service_status_view_form">
-            <field name="model">amazon.mws.check_service_status.view</field>
+        <record model="ir.ui.view" id="check_amazon_service_status_view_form">
+            <field name="model">channel.check_amazon_service_status.view</field>
             <field name="type">form</field>
             <field name="name">wizard_check_service_status_view_form</field>
         </record>
@@ -24,12 +24,12 @@
         <!--Check Amazon Settings Wizard-->
         <record model="ir.action.wizard" id="check_amazon_settings">
             <field name="name">Check Amazon Settings</field>
-            <field name="wiz_name">amazon.mws.check_amazon_settings</field>
+            <field name="wiz_name">channel.check_amazon_settings</field>
             <field name="model">sale.channel</field>
         </record>
 
         <record model="ir.ui.view" id="check_amazon_settings_view_form">
-            <field name="model">amazon.mws.check_amazon_settings.view</field>
+            <field name="model">channel.check_amazon_settings.view</field>
             <field name="type">form</field>
             <field name="name">wizard_check_amazon_settings_view_form</field>
         </record>
@@ -37,12 +37,12 @@
         <!--Import orders wizard-->
         <record model="ir.action.wizard" id="import_amazon_orders">
             <field name="name">Import Amazon Orders</field>
-            <field name="wiz_name">sale.channel.import_amazon_orders</field>
+            <field name="wiz_name">channel.import_amazon_orders</field>
             <field name="model">sale.channel</field>
         </record>
 
         <record model="ir.ui.view" id="import_amazon_orders_view_form">
-            <field name="model">sale.channel.import_amazon_orders.view</field>
+            <field name="model">channel.import_amazon_orders.view</field>
             <field name="type">form</field>
             <field name="name">wizard_import_orders_view_form</field>
         </record>
@@ -83,6 +83,19 @@
             <field name="repeat_missed" eval="False"/>
             <field name="model">sale.channel</field>
             <field name="function">export_inventory_to_amazon_using_cron</field>
+        </record>
+
+        <record model="ir.cron" id="cron_import_amazon_orders">
+            <field name="name">Import Amazon Orders</field>
+            <field name="request_user" ref="res.user_admin"/>
+            <field name="user" ref="res.user_trigger"/>
+            <field name="active" eval="True"/>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="number_calls">-1</field>
+            <field name="repeat_missed" eval="False"/>
+            <field name="model">sale.channel</field>
+            <field name="function">import_amazon_orders_using_cron</field>
         </record>
 
     </data>
