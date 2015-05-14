@@ -1,8 +1,7 @@
 <?xml version="1.0"?>
 <data>
-    <xpath expr="//notebook" position="inside">
-      <page id="mws_account_details" string="Amazon Marketplace"
-                states="{'invisible': Not(Eval('source') == 'amazon_mws')}">
+    <xpath expr="/form/notebook/page[@id='configuration']/notebook/page[@id='connection']" position="inside">
+        <group id="mws_account_details" states="{'invisible': Not(Eval('source') == 'amazon_mws')}">
             <label name="amazon_merchant_id" />
             <field name="amazon_merchant_id" />
             <label name="amazon_marketplace_id" />
@@ -12,18 +11,24 @@
             <label name="amazon_secret_key"/>
             <field name="amazon_secret_key" widget="password"/>
             <newline/>
-            <separator id="import_export_time" string="Import / Export Time" colspan="2"/>
+        </group>
+    </xpath>
+    <xpath expr="/form/notebook/page[@id='configuration']/notebook/page[@id='import_export']/group[@id='channel_common_buttons']" position="before" >
+        <group id="amazon_order" states="{'invisible': Not(Eval('source') == 'amazon_mws')}" >
             <newline/>
             <label name="last_amazon_order_import_time"/>
             <field name="last_amazon_order_import_time"/>
             <label name="last_amazon_product_export_time"/>
             <field name="last_amazon_product_export_time"/>
             <newline/>
-            <group id="check_amazon_settings" col="3" colspan="6"
+        </group>
+    </xpath>
+    <xpath expr="/form/notebook/page[@id='configuration']" position="inside">
+        <group id="check_amazon_settings" col="3" colspan="6"
                     states="{'invisible': Not(Eval('source') == 'amazon_mws')}">
-                <button string="Check Amazon MWS Service Status" name="check_amazon_service_status"/>
-                <button string="Check Amazon MWS Account Settings" name="check_amazon_settings"/>
-            </group>
-        </page>
+            <button string="Check Amazon MWS Service Status" name="check_amazon_service_status"/>
+            <button string="Check Amazon MWS Account Settings" name="check_amazon_settings"/>      
+            <button string="Import Amazon MWS Orders" name="import_amazon_orders_button"/>
+        </group>
     </xpath>
 </data>
