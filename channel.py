@@ -22,8 +22,7 @@ __metaclass__ = PoolMeta
 
 __all__ = [
     'SaleChannel', 'CheckAmazonServiceStatusView', 'CheckAmazonServiceStatus',
-    'CheckAmazonSettingsView', 'CheckAmazonSettings', 'ImportAmazonOrdersView',
-    'ImportAmazonOrders',
+    'CheckAmazonSettingsView', 'CheckAmazonSettings'
 ]
 
 AMAZON_MWS_STATES = {
@@ -99,7 +98,6 @@ class SaleChannel:
         cls._buttons.update({
             'check_amazon_service_status': {},
             'check_amazon_settings': {},
-            'import_amazon_orders_button': {},
         })
 
         cls._error_messages.update({
@@ -194,15 +192,15 @@ class SaleChannel:
         channels = cls.search([('source', '=', 'amazon_mws')])
 
         for channel in channels:
-            channel.import_amazon_orders()
+            channel.import_orders()
 
-    def import_amazon_orders(self):
+    def import_orders(self):
         """
-        Import Orders for current channel
+        Downstream implementation of channel.import_orders
+        :return: List of active record of sale imported
         """
-        Sale = Pool().get('sale.sale')
-
-        self.validate_amazon_channel()
+        if self.source != 'amazon_mws':
+            return super(SaleChannel, self).import_orders()
 
         order_api = self.get_amazon_order_api()
 
@@ -226,26 +224,44 @@ class SaleChannel:
         else:
             orders = response['Orders']['Order']
 
-        with Transaction().set_context({'current_channel': self.id}):
-            for order_data in orders:
-                sales.append(
-                    Sale.find_or_create_using_amazon_id(
-                        order_data['AmazonOrderId']['value']
-                    )
+        for order_data in orders:
+            sales.append(
+                self.import_order(
+                    order_data['AmazonOrderId']['value']
                 )
+            )
 
         # Update last order import time for channel
         self.write([self], {'last_amazon_order_import_time': datetime.utcnow()})
 
         return sales
 
-    @classmethod
-    @ModelView.button_action('amazon_mws.import_amazon_orders')
-    def import_amazon_orders_button(cls, channels):
-        """
-        Import orders for current account
-        """
-        pass
+    def import_order(self, order_id):
+        "Downstream implementation of channel.import_order from sale channel"
+        if self.source != 'amazon_mws':
+            return super(SaleChannel, self).import_order(order_id)
+
+        Sale = Pool().get('sale.sale')
+
+        sales = Sale.search([
+            ('amazon_order_id', '=', order_id),
+        ])
+        if sales:
+            return sales[0]
+
+        order_api = self.get_amazon_order_api()
+
+        order_data = order_api.get_order([order_id]).parsed
+
+        order_line_data = order_api.list_order_items(
+            order_data['Orders']['Order']['AmazonOrderId']['value']
+        ).parsed
+
+        with Transaction().set_context({'current_channel': self.id}):
+            return Sale.create_using_amazon_data(
+                order_data['Orders']['Order'],
+                order_line_data['OrderItems']['OrderItem']
+            )
 
     def _get_amazon_envelop(self, message_type, xml_list):
         """
