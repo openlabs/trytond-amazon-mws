@@ -10,8 +10,7 @@
 from trytond.pool import Pool
 from channel import (
     SaleChannel, CheckAmazonServiceStatus, CheckAmazonServiceStatusView,
-    CheckAmazonSettingsView, CheckAmazonSettings, ImportAmazonOrdersView,
-    ImportAmazonOrders
+    CheckAmazonSettingsView, CheckAmazonSettings
 )
 from product import (
     Product, ExportAmazonCatalogStart, ExportAmazonCatalog,
@@ -41,7 +40,6 @@ def register():
         ExportAmazonInventoryDone,
         CheckAmazonServiceStatusView,
         CheckAmazonSettingsView,
-        ImportAmazonOrdersView,
         Sale,
         Party,
         Address,
@@ -54,6 +52,5 @@ def register():
         ExportAmazonCatalog,
         ExportAmazonPricing,
         ExportAmazonInventory,
-        ImportAmazonOrders,
         module='amazon_mws', type_='wizard'
     )

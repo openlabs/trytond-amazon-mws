@@ -34,19 +34,6 @@
             <field name="name">wizard_check_amazon_settings_view_form</field>
         </record>
 
-        <!--Import orders wizard-->
-        <record model="ir.action.wizard" id="import_amazon_orders">
-            <field name="name">Import Amazon Orders</field>
-            <field name="wiz_name">channel.import_amazon_orders</field>
-            <field name="model">sale.channel</field>
-        </record>
-
-        <record model="ir.ui.view" id="import_amazon_orders_view_form">
-            <field name="model">channel.import_amazon_orders.view</field>
-            <field name="type">form</field>
-            <field name="name">wizard_import_orders_view_form</field>
-        </record>
-
         <!--- Cron to Export Product Catalog-->
         <record model="ir.cron" id="cron_export_product_catalog">
             <field name="name">Export Product Catalog To Amazon</field>
@@ -83,19 +70,6 @@
             <field name="repeat_missed" eval="False"/>
             <field name="model">sale.channel</field>
             <field name="function">export_inventory_to_amazon_using_cron</field>
-        </record>
-
-        <record model="ir.cron" id="cron_import_amazon_orders">
-            <field name="name">Import Amazon Orders</field>
-            <field name="request_user" ref="res.user_admin"/>
-            <field name="user" ref="res.user_trigger"/>
-            <field name="active" eval="True"/>
-            <field name="interval_number">1</field>
-            <field name="interval_type">days</field>
-            <field name="number_calls">-1</field>
-            <field name="repeat_missed" eval="False"/>
-            <field name="model">sale.channel</field>
-            <field name="function">import_amazon_orders_using_cron</field>
         </record>
 
     </data>
