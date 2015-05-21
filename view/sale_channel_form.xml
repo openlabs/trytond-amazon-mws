@@ -23,7 +23,6 @@
                     states="{'invisible': Not(Eval('source') == 'amazon_mws')}">
                 <button string="Check Amazon MWS Service Status" name="check_amazon_service_status"/>
                 <button string="Check Amazon MWS Account Settings" name="check_amazon_settings"/>
-                <button string="Import Amazon MWS Orders" name="import_amazon_orders_button"/>
             </group>
         </page>
     </xpath>
