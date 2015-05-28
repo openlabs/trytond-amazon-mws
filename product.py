@@ -68,38 +68,6 @@ class Product:
         return res
 
     @classmethod
-    def find_or_create_using_amazon_sku(cls, sku):
-        """
-        Find or create a product using Amazon Seller SKU. This method looks
-        for an existing product using the SKU provided. If found, it
-        returns the product found, else creates a new one and returns that
-
-        :param sku: Product Seller SKU from Amazon
-        :returns: Active record of Product Created
-        """
-        SaleChannel = Pool().get('sale.channel')
-
-        products = cls.search([('code', '=', sku)])
-
-        if products:
-            return products[0]
-
-        # if product is not found get the info from amazon and
-        # delegate to create_using_amazon_data
-        amazon_channel = SaleChannel(
-            Transaction().context['current_channel']
-        )
-        assert amazon_channel.source == 'amazon_mws'
-
-        api = amazon_channel.get_amazon_product_api()
-
-        product_data = api.get_matching_product_for_id(
-            amazon_channel.amazon_marketplace_id, 'SellerSKU', [sku]
-        ).parsed
-
-        return cls.create_using_amazon_data(product_data)
-
-    @classmethod
     def extract_product_values_from_amazon_data(cls, product_attributes):
         """
         Extract product values from the amazon data, used for

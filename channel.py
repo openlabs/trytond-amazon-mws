@@ -433,6 +433,35 @@ class SaleChannel:
 
         return response.parsed
 
+    def import_product(self, sku):
+        """
+        Import specific product for this amazon channel
+        Downstream implementation for channel.import_product
+
+        :param sku: Product Seller SKU from Amazon
+        :returns: Active record of Product Created
+        """
+        Product = Pool().get('product.product')
+
+        if self.source != 'amazon_mws':
+            return super(SaleChannel, self).import_product(sku)
+
+        products = Product.search([('code', '=', sku)])
+
+        if products:
+            return products[0]
+
+        # If product is not found get the info from amazon and
+        # delegate to create_using_amazon_data
+
+        product_api = self.get_amazon_product_api()
+
+        product_data = product_api.get_matching_product_for_id(
+            self.amazon_marketplace_id, 'SellerSKU', [sku]
+        ).parsed
+
+        return Product.create_using_amazon_data(product_data)
+
     def export_inventory_to_amazon(self, silent=False):
         """Export inventory of the products to the Amazon account in context
 
