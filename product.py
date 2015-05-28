@@ -123,8 +123,6 @@ class Product:
             'default_uom': amazon_channel.default_uom.id,
             'salable': True,
             'sale_uom': amazon_channel.default_uom.id,
-            'account_expense': amazon_channel.default_account_expense.id,
-            'account_revenue': amazon_channel.default_account_revenue.id,
         }
 
     @classmethod
