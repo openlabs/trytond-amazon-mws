@@ -80,15 +80,6 @@ class SaleChannel:
 
         return sources
 
-    @staticmethod
-    def default_default_uom():
-        UoM = Pool().get('product.uom')
-
-        unit = UoM.search([
-            ('name', '=', 'Unit'),
-        ])
-        return unit and unit[0].id or None
-
     @classmethod
     def __setup__(cls):
         """
