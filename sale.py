@@ -182,8 +182,8 @@ class Sale:
         :return: List of data of order lines in required format
         """
         Uom = Pool().get('product.uom')
-        Product = Pool().get('product.product')
         SaleLine = Pool().get('sale.line')
+        Channel = Pool().get('sale.channel')
 
         unit, = Uom.search([('name', '=', 'Unit')])
 
@@ -199,6 +199,11 @@ class Sale:
             order_items = line_data
 
         sale_lines = []
+
+        amazon_channel = Channel(
+            Transaction().context['current_channel']
+        )
+        amazon_channel.validate_amazon_channel()
         for order_item in order_items:
             sale_lines.append(
                 SaleLine(
@@ -208,7 +213,7 @@ class Sale:
                     ),
                     unit=unit.id,
                     quantity=Decimal(order_item['QuantityOrdered']['value']),
-                    product=Product.find_or_create_using_amazon_sku(
+                    product=amazon_channel.import_product(
                         order_item['SellerSKU']['value'],
                     ).id
                 )
