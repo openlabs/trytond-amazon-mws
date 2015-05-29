@@ -244,8 +244,6 @@ class TestBase(unittest.TestCase):
             'company': self.company.id,
             'source': 'amazon_mws',
             'currency': self.company.currency.id,
-            'default_account_revenue': self.get_account_by_kind('revenue'),
-            'default_account_expense': self.get_account_by_kind('expense'),
             'default_uom': self.uom,
             'price_list': self.price_list,
             'invoice_method': 'manual',
@@ -260,8 +258,8 @@ class TestBase(unittest.TestCase):
 
         # TODO: This should work without creating new properties
         self.Property.create([{
-            'value': 'account.account' + ',' + str(
-                self.sale_channel.default_account_revenue.id
+            'value': '%s,%s' % (
+                'account.account', self.get_account_by_kind('revenue')
             ),
             'res': None,
             'field': model_field.id,
