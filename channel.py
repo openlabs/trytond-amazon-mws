@@ -282,7 +282,7 @@ class SaleChannel:
         channels = cls.search([('source', '=', 'amazon_mws')])
 
         for channel in channels:
-            channel.export_pricing_to_amazon(silent=True)
+            channel.export_product_prices()
 
     @classmethod
     def export_inventory_to_amazon_using_cron(cls):
@@ -388,14 +388,15 @@ class SaleChannel:
 
         return response.parsed
 
-    def export_pricing_to_amazon(self, silent=False):
+    def export_product_prices(self):
         """Export prices of the products to the Amazon account in context
 
         :param products: List of active records of products
         """
-        Product = Pool().get('product.product')
+        if self.source != 'amazon_mws':
+            return super(SaleChannel, self).export_product_prices()
 
-        self.validate_amazon_channel()
+        Product = Pool().get('product.product')
 
         products = Product.search([
             ('code', '!=', None),
@@ -425,13 +426,13 @@ class SaleChannel:
 
         feeds_api = self.get_amazon_feed_api()
 
-        response = feeds_api.submit_feed(
+        feeds_api.submit_feed(
             etree.tostring(envelope_xml),
             feed_type='_POST_PRODUCT_PRICING_DATA_',
             marketplaceids=[self.amazon_marketplace_id]
         )
 
-        return response.parsed
+        return len(pricing_xml)
 
     def import_product(self, sku):
         """

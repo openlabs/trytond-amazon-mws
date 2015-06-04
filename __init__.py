@@ -14,8 +14,7 @@ from channel import (
 )
 from product import (
     Product, ExportAmazonCatalogStart, ExportAmazonCatalog,
-    ExportAmazonCatalogDone, ExportAmazonPricingStart, ExportAmazonPricing,
-    ExportAmazonPricingDone, ExportAmazonInventoryStart,
+    ExportAmazonCatalogDone, ExportAmazonInventoryStart,
     ExportAmazonInventory, ExportAmazonInventoryDone, ProductCode, Template
 )
 from sale import Sale
@@ -34,8 +33,6 @@ def register():
         Template,
         ExportAmazonCatalogStart,
         ExportAmazonCatalogDone,
-        ExportAmazonPricingStart,
-        ExportAmazonPricingDone,
         ExportAmazonInventoryStart,
         ExportAmazonInventoryDone,
         CheckAmazonServiceStatusView,
@@ -50,7 +47,6 @@ def register():
         CheckAmazonServiceStatus,
         CheckAmazonSettings,
         ExportAmazonCatalog,
-        ExportAmazonPricing,
         ExportAmazonInventory,
         module='amazon_mws', type_='wizard'
     )
