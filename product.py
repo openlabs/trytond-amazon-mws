@@ -15,8 +15,7 @@ from trytond.pool import PoolMeta, Pool
 
 __all__ = [
     'Product', 'ExportAmazonCatalogStart', 'ExportAmazonCatalog',
-    'ExportAmazonCatalogDone', 'ExportAmazonPricingStart',
-    'ExportAmazonPricing', 'ExportAmazonPricingDone',
+    'ExportAmazonCatalogDone',
     'ExportAmazonInventoryStart', 'ExportAmazonInventory',
     'ExportAmazonInventoryDone', 'ProductCode',
     'Template',
@@ -86,8 +85,6 @@ class Product:
 
         return {
             'name': product_attributes['Title']['value'],
-            'list_price': Decimal('0.01'),
-            'cost_price': Decimal('0.01'),
             'default_uom': amazon_channel.default_uom.id,
             'salable': True,
             'sale_uom': amazon_channel.default_uom.id,
@@ -119,6 +116,8 @@ class Product:
         product_values.update({
             'products': [('create', [{
                 'code': product_data['Id']['value'],
+                'list_price': Decimal('0.01'),
+                'cost_price': Decimal('0.01'),
                 'description': product_attributes['Title']['value'],
                 'channel_listings': [('create', [{
                     # TODO: Set product identifier
@@ -194,68 +193,6 @@ class ExportAmazonCatalog(Wizard):
         amazon_channel = SaleChannel(Transaction().context.get('active_id'))
 
         response = amazon_channel.export_catalog_to_amazon()
-
-        Transaction().set_context({'response': response})
-
-        return 'done'
-
-    def default_done(self, fields):
-        "Display response"
-        response = Transaction().context['response']
-        return {
-            'status': response['FeedSubmissionInfo'][
-                'FeedProcessingStatus'
-            ]['value'],
-            'submission_id': response['FeedSubmissionInfo'][
-                'FeedSubmissionId'
-            ]['value']
-        }
-
-
-class ExportAmazonPricingStart(ModelView):
-    'Export Catalog Pricing to Amazon View'
-    __name__ = 'amazon.export_catalog_pricing.start'
-
-
-class ExportAmazonPricingDone(ModelView):
-    'Export Catalog Pricing to Amazon Done View'
-    __name__ = 'amazon.export_catalog_pricing.done'
-
-    status = fields.Char('Status', readonly=True)
-    submission_id = fields.Char('Submission ID', readonly=True)
-
-
-class ExportAmazonPricing(Wizard):
-    '''Export catalog pricing to Amazon
-
-    Export the prices products selected to this amazon account
-    '''
-    __name__ = 'amazon.export_catalog_pricing'
-
-    start = StateView(
-        'amazon.export_catalog_pricing.start',
-        'amazon_mws.export_catalog_pricing_start', [
-            Button('Cancel', 'end', 'tryton-cancel'),
-            Button('Continue', 'export_', 'tryton-ok', default=True),
-        ]
-    )
-    export_ = StateTransition()
-    done = StateView(
-        'amazon.export_catalog_pricing.done',
-        'amazon_mws.export_catalog_pricing_done', [
-            Button('OK', 'end', 'tryton-cancel'),
-        ]
-    )
-
-    def transition_export_(self):
-        """
-        Export the prices for products selected to this amazon account
-        """
-        SaleChannel = Pool().get('sale.channel')
-
-        amazon_channel = SaleChannel(Transaction().context.get('active_id'))
-
-        response = amazon_channel.export_pricing_to_amazon()
 
         Transaction().set_context({'response': response})
 

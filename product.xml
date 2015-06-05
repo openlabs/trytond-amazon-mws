@@ -31,27 +31,6 @@ this repository contains the full copyright notices and license terms. -->
             <field name="name">export_catalog_done_form</field>
         </record>
 
-        <record model="ir.action.wizard" id="wizard_export_catalog_pricing">
-            <field name="name">Export Product Catalog Prices to Amazon</field>
-            <field name="wiz_name">amazon.export_catalog_pricing</field>
-            <field name="model">sale.channel</field>
-        </record>
-        <record model="ir.action.keyword" id="export_catalog_pricing_keyword">
-            <field name="keyword">form_action</field>
-            <field name="model">sale.channel,-1</field>
-            <field name="action" ref="wizard_export_catalog_pricing"/>
-        </record>
-        <record model="ir.ui.view" id="export_catalog_pricing_start">
-            <field name="model">amazon.export_catalog_pricing.start</field>
-            <field name="type">form</field>
-            <field name="name">export_catalog_pricing_start_form</field>
-        </record>
-        <record model="ir.ui.view" id="export_catalog_pricing_done">
-            <field name="model">amazon.export_catalog_pricing.done</field>
-            <field name="type">form</field>
-            <field name="name">export_catalog_pricing_done_form</field>
-        </record>
-
         <record model="ir.action.wizard" id="wizard_export_catalog_inventory">
             <field name="name">Export Product Catalog Inventory to Amazon</field>
             <field name="wiz_name">amazon.export_catalog_inventory</field>
