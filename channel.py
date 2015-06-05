@@ -416,7 +416,7 @@ class SaleChannel:
                         E.SKU(product.code),
                         E.StandardPrice(
                             # TODO: Use a pricelist
-                            str(product.template.list_price),
+                            str(product.list_price),
                             currency=self.company.currency.code
                         ),
                     )

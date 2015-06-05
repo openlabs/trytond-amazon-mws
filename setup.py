@@ -89,7 +89,8 @@ minor_version = int(minor_version)
 requires = ['python-amazon-mws']
 
 MODULE2PREFIX = {
-    'sale_channel': 'openlabs'
+    'sale_channel': 'openlabs',
+    'product_variant': 'openlabs',
 }
 MODULE = "amazon_mws"
 PREFIX = "openlabs"
