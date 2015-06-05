@@ -85,8 +85,6 @@ class Product:
 
         return {
             'name': product_attributes['Title']['value'],
-            'list_price': Decimal('0.01'),
-            'cost_price': Decimal('0.01'),
             'default_uom': amazon_channel.default_uom.id,
             'salable': True,
             'sale_uom': amazon_channel.default_uom.id,
@@ -118,6 +116,8 @@ class Product:
         product_values.update({
             'products': [('create', [{
                 'code': product_data['Id']['value'],
+                'list_price': Decimal('0.01'),
+                'cost_price': Decimal('0.01'),
                 'description': product_attributes['Title']['value'],
                 'channel_listings': [('create', [{
                     # TODO: Set product identifier

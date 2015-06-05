@@ -42,13 +42,13 @@ class TestProduct(TestBase):
             template, = Template.create([{
                 'name': 'Test Product',
                 'default_uom': self.uom.id,
-                'list_price': Decimal('10.0'),
-                'cost_price': Decimal('8.0'),
                 'account_expense': self.get_account_by_kind('expense'),
                 'account_revenue': self.get_account_by_kind('revenue'),
                 'export_to_amazon': True,
                 'products': [('create', [{
                     'code': 'code1',
+                    'list_price': Decimal('10.0'),
+                    'cost_price': Decimal('8.0'),
                     'description': 'Some product description',
                     'codes': [('create', [{
                         'code': 'BUYGBS6866',
