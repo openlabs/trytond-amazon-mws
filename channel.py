@@ -275,16 +275,6 @@ class SaleChannel:
             channel.export_catalog_to_amazon(silent=True)
 
     @classmethod
-    def export_prices_to_amazon_using_cron(cls):
-        """
-        Cron method to export product prices to amazon
-        """
-        channels = cls.search([('source', '=', 'amazon_mws')])
-
-        for channel in channels:
-            channel.export_product_prices()
-
-    @classmethod
     def export_inventory_to_amazon_using_cron(cls):
         """
         Cron method to export product inventory to amazon
