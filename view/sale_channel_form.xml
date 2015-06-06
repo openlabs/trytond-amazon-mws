@@ -13,16 +13,6 @@
             <newline/>
         </group>
     </xpath>
-    <xpath expr="/form/notebook/page[@id='configuration']/notebook/page[@id='import_export']/group[@id='channel_common_buttons']" position="before" >
-        <group id="amazon_order" states="{'invisible': Not(Eval('source') == 'amazon_mws')}" >
-            <newline/>
-            <label name="last_amazon_order_import_time"/>
-            <field name="last_amazon_order_import_time"/>
-            <label name="last_amazon_product_export_time"/>
-            <field name="last_amazon_product_export_time"/>
-            <newline/>
-        </group>
-    </xpath>
     <xpath expr="/form/notebook/page[@id='configuration']" position="inside">
         <group id="check_amazon_settings" col="3" colspan="6"
                     states="{'invisible': Not(Eval('source') == 'amazon_mws')}">
