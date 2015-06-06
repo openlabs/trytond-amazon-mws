@@ -6,7 +6,6 @@
     :license: BSD, see LICENSE for more details.
 """
 from datetime import datetime
-from dateutil.relativedelta import relativedelta
 from mws import mws
 from lxml import etree
 from lxml.builder import E
@@ -49,25 +48,6 @@ class SaleChannel:
     amazon_secret_key = fields.Char(
         "Secret Key", states=AMAZON_MWS_STATES, depends=['source']
     )
-
-    last_amazon_order_import_time = fields.DateTime(
-        'Last Amazon Order Import Time', states={
-            'invisible': ~(Eval('source') == 'amazon_mws')
-        }, depends=['source']
-    )
-
-    last_amazon_product_export_time = fields.DateTime(
-        'Last Amazon Product Export Time', states={
-            'invisible': ~(Eval('source') == 'amazon_mws')
-        }, depends=['source']
-    )
-
-    @staticmethod
-    def default_last_amazon_order_import_time():
-        """
-        Sets default last order import time
-        """
-        return datetime.utcnow() - relativedelta(days=30)
 
     @classmethod
     def get_source(cls):
@@ -186,7 +166,7 @@ class SaleChannel:
         order_api = self.get_amazon_order_api()
 
         sales = []
-        last_import_time = self.last_amazon_order_import_time.isoformat()
+        last_import_time = self.last_order_import_time.isoformat()
 
         response = order_api.list_orders(
             marketplaceids=[self.amazon_marketplace_id],
@@ -213,7 +193,7 @@ class SaleChannel:
             )
 
         # Update last order import time for channel
-        self.write([self], {'last_amazon_order_import_time': datetime.utcnow()})
+        self.write([self], {'last_order_import_time': datetime.utcnow()})
 
         return sales
 
@@ -298,9 +278,9 @@ class SaleChannel:
             ('codes', 'not in', []),
         ]
 
-        if self.last_amazon_product_export_time:
+        if self.last_product_export_time:
             domain.append(
-                ('write_date', '>=', self.last_amazon_product_export_time)
+                ('write_date', '>=', self.last_product_export_time)
             )
 
         products = Product.search(domain)
@@ -365,7 +345,7 @@ class SaleChannel:
 
         # Update last product export time for channel
         self.write([self], {
-            'last_amazon_product_export_time': datetime.utcnow()
+            'last_product_export_time': datetime.utcnow()
         })
 
         Product.write(products, {
